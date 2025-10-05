@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import TheWelcome from '../components/TheWelcome.vue'
+import Itinerary from '../components/Itinerary.vue'
 </script>
 
 <template>
   <main>
-    <TheWelcome />
+    <Itinerary />
   </main>
 </template>
