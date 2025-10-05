@@ -1,5 +1,24 @@
-<script setup lang="ts">
+<script lang="ts">
 import { RouterView } from 'vue-router'
+import { defineComponent } from "vue";
+import { useAuthStore } from "@/stores/auth.ts";
+
+export default defineComponent({
+  name: 'App',
+  components: {
+    RouterView
+  },
+  mounted() {
+    const auth = useAuthStore()
+    auth.restore()
+    // Keep tabs in sync (logout everywhere when one tab logs out)
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'auth' && e.newValue === null) {
+        auth.logout()
+      }
+    })
+  }
+})
 </script>
 
 <template>
@@ -21,7 +40,6 @@ import { RouterView } from 'vue-router'
 
       <v-list density="compact" nav>
         <v-list-item prepend-icon="mdi-home" title="Home" to="/" />
-        <v-list-item prepend-icon="mdi-information" title="About" to="/about" />
       </v-list>
     </v-navigation-drawer>
 
@@ -38,12 +56,3 @@ import { RouterView } from 'vue-router'
     </v-main>
   </v-app>
 </template>
-
-<style scoped>
-/* TODO fix the messed up layout somehow */
-#app {
-  display: block !important;
-  margin: 0;
-  max-width: unset !important;
-}
-</style>

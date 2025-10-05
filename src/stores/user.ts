@@ -4,12 +4,7 @@ import { defaultApi } from "@/services/api.ts";
 export const useUserStore = defineStore('user', () => {
   const user = {}
 
-  async function userRegister() {
-    const userDto = {
-      id: "1",
-      name: "John Doe",
-      email: "john@doe.com",
-    }
+  async function userRegister(userDto: { id: number; name: string; email: string }) {
     await defaultApi.userRegisterPost({userDto})
   }
 
