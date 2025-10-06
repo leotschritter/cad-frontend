@@ -10,6 +10,9 @@ const router = createRouter({
       name: 'home',
       // meta: { requiresAuth: true },
       component: HomeView,
+      props: (route) => ({
+        email: route.query.email as string ?? '',
+      }),
     },
     {
       path: '/register',
@@ -26,7 +29,7 @@ const router = createRouter({
 
 router.beforeEach((to, _from, next) => {
   const auth = useAuthStore()
-  if (to.meta.requiresAuth && !auth.token) return next('/login')
+  if (to.meta.requiresAuth && !auth.user) return next('/login')
   next()
 })
 
