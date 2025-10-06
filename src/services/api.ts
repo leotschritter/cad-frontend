@@ -15,6 +15,3 @@ export const getApi = <T extends keyof typeof AllApis>(key: T) => {
   const ApiCtor = AllApis[key] as any;
   return new ApiCtor(apiConfig);
 };
-
-// Example convenience exports
-export const defaultApi = getApi('DefaultApi' as keyof typeof AllApis);
