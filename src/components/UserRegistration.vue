@@ -4,7 +4,6 @@ import { defineComponent } from 'vue'
 import { useUserStore } from "@/stores/user.ts";
 
 type RegistrationPayload = {
-  id: number
   name: string
   email: string
 }
@@ -39,7 +38,6 @@ export default defineComponent({
       this.loading = true
       try {
         const payload: RegistrationPayload = {
-          id: 12, // TODO usually assigned by backend
           name: this.form.firstName + ' ' + this.form.lastName,
           email: this.form.email,
         }
@@ -55,11 +53,14 @@ export default defineComponent({
   },
   mounted() {
     // explicit lifecycle hook: focus first field
-    this.userStore = useUserStore()
     this.$nextTick(() => {
       const first = this.$refs.firstNameField as any
       first?.focus?.()
     })
+  },
+  created() {
+    // initialize store
+    this.userStore = useUserStore()
   },
   beforeUnmount() {
     // cleanup if needed
