@@ -2,6 +2,9 @@
 <script lang="ts">
 import { defineComponent } from 'vue'
 import { useUserStore } from "@/stores/user.ts";
+import { useAuthStore } from "@/stores/auth.ts";
+import type { UserDto } from "@/api";
+import "vue-router/dist/vue-router";
 
 type RegistrationPayload = {
   name: string
@@ -21,7 +24,8 @@ export default defineComponent({
         lastName: '',
         email: '',
       },
-      userStore: (null as any), // will be set in created()
+      userStore: (null as any),
+      authStore: (null as any),
     }
   },
   methods: {
@@ -36,17 +40,25 @@ export default defineComponent({
       if (!res?.valid) return
 
       this.loading = true
+      let user: UserDto | any = null
       try {
         const payload: RegistrationPayload = {
           name: this.form.firstName + ' ' + this.form.lastName,
           email: this.form.email,
         }
-        await this.userStore.userRegister(payload)
+        user = await this.userStore.userRegister(payload)
 
         formEl.reset()
       } catch (e: any) {
         this.errorMsg = e?.message ?? 'Registration failed'
       } finally {
+        if (!user) return
+        this.authStore.login(user)
+        this.$router.push({
+          name: 'home',
+          query: { email: user.email },
+        })
+
         this.loading = false
       }
     },
@@ -61,6 +73,7 @@ export default defineComponent({
   created() {
     // initialize store
     this.userStore = useUserStore()
+    this.authStore = useAuthStore()
   },
   beforeUnmount() {
     // cleanup if needed
