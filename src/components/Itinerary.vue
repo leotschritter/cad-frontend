@@ -28,30 +28,18 @@ export default defineComponent({
         {title: 'Start date of the trip', key: 'startDate'},
         {title: 'Actions', key: 'actions', sortable: false, align: 'end' as const},
       ],
-      items: ref<ItineraryDto[]>([
-        {
-          title: 'Title 1',
-          destination: 'Ada Lovelace',
-          startDate: new Date('2024-06-01'),
-          shortDescription: 'Admin',
-          detailedDescription: 'lololololol'
-        },
-        {
-          title: 'Title 2',
-          destination: 'Ada Lovelace',
-          startDate: new Date('2024-06-01'),
-          shortDescription: 'Admin',
-          detailedDescription: 'lololololol'
-        },
-        {
-          title: 'Title 3',
-          destination: 'Ada Lovelace',
-          startDate: new Date('2024-06-01'),
-          shortDescription: 'Admin',
-          detailedDescription: 'lololololol'
-        },
-      ])
     }
+  },
+  computed: {
+    itineraryStore() {
+      return useItineraryStore();
+    },
+    itemsFromStore() {
+      return this.iteneraryStore.itineraries;
+    }
+  },
+  created() {
+    this.itineraryStore.loadItineraries(123);
   },
   methods: {
     open(action: 'create' | 'showDetails', item?: ItineraryDto) {
@@ -109,7 +97,7 @@ export default defineComponent({
 
     <v-data-table
         :headers="headers"
-        :items="items"
+        :items="itemsFromStore"
         :search="search"
         density="comfortable"
         item-key="id"

@@ -1,6 +1,7 @@
 <!-- src/components/LoginForm.vue -->
 <script lang="ts">
 import { defineComponent } from 'vue'
+import { useItineraryStore} from '@/stores/itinerary.ts'
 
 type LoginPayload = {
   email: string
