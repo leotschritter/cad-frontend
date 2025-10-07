@@ -9,9 +9,19 @@ export const useUserStore = defineStore('user',{
     user: null as UserDto | null,
   }),
   actions: {
-    async userRegister(payload: { name: string; email: string }): Promise<UserDto> {
-      this.user = userApi.userRegisterPost({ payload })
-      return this.user
+    async userRegister(payload: { name: string; email: string }): Promise<UserDto | null> {
+      try {
+        this.user = await userApi.userRegisterPost({ userDto: payload })
+        return this.user
+      } catch (err: any) {
+        this.user = null
+        const status = err?.response?.status
+        if (status === 400) {
+          return null
+        } else {
+          throw err
+        }
+      }
     },
     async userLogin(email: string): Promise<UserDto | null> {
       try {
