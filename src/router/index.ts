@@ -10,9 +10,6 @@ const router = createRouter({
       name: 'home',
       meta: { requiresAuth: true },
       component: HomeView,
-      props: (route) => ({
-        email: route.query.email as string ?? '',
-      }),
     },
     {
       path: '/register',

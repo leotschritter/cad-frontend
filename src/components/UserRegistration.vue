@@ -49,10 +49,7 @@ export default defineComponent({
         const user: UserDto | null = await this.userStore.userRegister(payload)
         if (user) {
           this.authStore.login(user)
-          this.$router.push({
-            name: 'home',
-            query: {email: user.email},
-          })
+          this.$router.push({ name: 'home' })
         } else {
           this.errorMsg = 'User already exists'
         }

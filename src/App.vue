@@ -2,6 +2,7 @@
 import { RouterView } from 'vue-router'
 import { defineComponent } from "vue";
 import { useAuthStore } from "@/stores/auth.ts";
+import AppFooter from "@/components/AppFooter.vue";
 
 export default defineComponent({
   name: 'App',
@@ -11,6 +12,7 @@ export default defineComponent({
     }
   },
   components: {
+    AppFooter,
     RouterView
   },
   mounted() {
@@ -34,6 +36,7 @@ export default defineComponent({
         expand-on-hover
         permanent
         rail
+        class="navigation-drawer-styles"
     >
       <v-list>
         <v-list-item
@@ -46,11 +49,11 @@ export default defineComponent({
       <v-divider />
 
       <v-list density="compact" nav>
-        <v-list-item prepend-icon="mdi-home" title="Home" to="/" />
+        <v-list-item prepend-icon="mdi-routes" title="My Itineraries" to="/" />
       </v-list>
     </v-navigation-drawer>
 
-    <v-app-bar flat>
+    <v-app-bar class="app-bar-styles" flat>
       <v-app-bar-title>Travel App</v-app-bar-title>
     </v-app-bar>
 
@@ -61,5 +64,19 @@ export default defineComponent({
         </v-fade-transition>
       </router-view>
     </v-main>
+
+    <AppFooter />
   </v-app>
 </template>
+
+<style scoped>
+.navigation-drawer-styles {
+  /*background-color: #1976d2;*/
+  background-color: rgb(238, 238, 238);
+  color: black;
+}
+.app-bar-styles {
+  background-color: rgb(238, 238, 238);
+  color: black;
+}
+</style>
