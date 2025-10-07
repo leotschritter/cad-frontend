@@ -2,6 +2,7 @@
 import { RouterView } from 'vue-router'
 import { defineComponent } from "vue";
 import { useAuthStore } from "@/stores/auth.ts";
+import AppFooter from "@/components/AppFooter.vue";
 
 export default defineComponent({
   name: 'App',
@@ -11,6 +12,7 @@ export default defineComponent({
     }
   },
   components: {
+    AppFooter,
     RouterView
   },
   mounted() {
@@ -34,6 +36,7 @@ export default defineComponent({
         expand-on-hover
         permanent
         rail
+        class="navigation-drawer-styles"
     >
       <v-list>
         <v-list-item
@@ -61,5 +64,14 @@ export default defineComponent({
         </v-fade-transition>
       </router-view>
     </v-main>
+
+    <AppFooter />
   </v-app>
 </template>
+
+<style scoped>
+.navigation-drawer-styles {
+  background-color: #1976d2;
+  color: white;
+}
+</style>
