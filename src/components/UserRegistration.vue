@@ -40,25 +40,25 @@ export default defineComponent({
       if (!res?.valid) return
 
       this.loading = true
-      let user: UserDto | any = null
+
       try {
         const payload: RegistrationPayload = {
           name: this.form.firstName + ' ' + this.form.lastName,
           email: this.form.email,
         }
-        user = await this.userStore.userRegister(payload)
-
-        formEl.reset()
-      } catch (e: any) {
-        this.errorMsg = e?.message ?? 'Registration failed'
+        const user: UserDto | null = await this.userStore.userRegister(payload)
+        if (user) {
+          this.authStore.login(user)
+          this.$router.push({
+            name: 'home',
+            query: {email: user.email},
+          })
+        } else {
+          this.errorMsg = 'User already exists'
+        }
+      } catch (err: any) {
+        this.errorMsg = err?.message ?? 'Registration failed'
       } finally {
-        if (!user) return
-        this.authStore.login(user)
-        this.$router.push({
-          name: 'home',
-          query: { email: user.email },
-        })
-
         this.loading = false
       }
     },

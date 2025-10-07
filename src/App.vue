@@ -5,18 +5,25 @@ import { useAuthStore } from "@/stores/auth.ts";
 
 export default defineComponent({
   name: 'App',
+  data() {
+    return {
+      authStore: null as any
+    }
+  },
   components: {
     RouterView
   },
   mounted() {
-    const auth = useAuthStore()
-    auth.restore()
-    // Keep tabs in sync (logout everywhere when one tab logs out)
-    window.addEventListener('storage', (e) => {
-      if (e.key === 'auth' && e.newValue === null) {
-        auth.logout()
-      }
-    })
+    this.authStore = useAuthStore()
+    this.authStore.restore()
+  },
+  computed: {
+    getEmail(): string {
+      return this.authStore?.user?.email ?? 'Log in to see email'
+    },
+    getName(): string {
+      return this.authStore?.user?.name ?? 'Log in to see name'
+    }
   }
 })
 </script>
@@ -30,9 +37,9 @@ export default defineComponent({
     >
       <v-list>
         <v-list-item
-            prepend-avatar="https://randomuser.me/api/portraits/women/85.jpg"
-            subtitle="sandra_a88@gmailcom"
-            title="Sandra Adams"
+            prepend-avatar="https://randomuser.me/api/portraits/lego/1.jpg"
+            :subtitle="getEmail"
+            :title="getName"
         ></v-list-item>
       </v-list>
 

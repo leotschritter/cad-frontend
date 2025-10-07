@@ -1,25 +1,23 @@
 <!-- src/components/LoginForm.vue -->
 <script lang="ts">
 import { defineComponent } from 'vue'
-import { useItineraryStore} from '@/stores/itinerary.ts'
-
-type LoginPayload = {
-  email: string
-}
+import { useUserStore } from "@/stores/user.ts";
+import { useAuthStore } from "@/stores/auth.ts";
+import type { UserDto } from "@/api";
 
 export default defineComponent({
   name: 'UserLogin',
-  emits: ['logged-in'],
 
   data() {
     return {
       valid: false as boolean,
       loading: false as boolean,
       errorMsg: null as string | null,
-      showPwd: false,
       form: {
         email: '',
       },
+      userStore: (null as any),
+      authStore: (null as any),
     }
   },
 
@@ -27,8 +25,6 @@ export default defineComponent({
     // rules
     required(v: any) { return (!!v || v === 0) || 'Required' },
     emailRule(v: string) { return /.+@.+\..+/.test(v) || 'Invalid email' },
-    min8(v: string) { return (v?.length >= 8) || 'Min. 8 characters' },
-    togglePwd() { this.showPwd = !this.showPwd },
 
     async onSubmit() {
       this.errorMsg = null
@@ -37,25 +33,25 @@ export default defineComponent({
       if (!res?.valid) return
 
       this.loading = true
-      try {
-        const payload: LoginPayload = {
-          email: this.form.email,
-        }
-        // TODO: call your API / store here
-        // const auth = useAuthStore()
-        // await auth.login(payload, 60 * 60 * 1000)
 
-        this.$emit('logged-in', payload)
-        // Example: redirect after success
-        // this.$router.push({ name: 'home' })
-      } catch (e: any) {
-        this.errorMsg = e?.message ?? 'Login failed'
+      try {
+        const user: UserDto | null = await this.userStore.userLogin(this.form.email)
+        if (user) {
+          this.authStore.login(user)
+          this.$router.push({
+            name: 'home',
+            query: {email: user.email},
+          })
+        } else {
+          this.errorMsg = 'User not found'
+        }
+      } catch (err: any) {
+        this.errorMsg = err?.message ?? 'Login failed'
       } finally {
         this.loading = false
       }
     },
   },
-
   mounted() {
     // focus email field explicitly
     this.$nextTick(() => {
@@ -63,6 +59,10 @@ export default defineComponent({
       el?.focus?.()
     })
   },
+  created() {
+    this.userStore = useUserStore()
+    this.authStore = useAuthStore()
+  }
 })
 </script>
 
