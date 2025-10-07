@@ -1,19 +1,15 @@
 import { defineStore } from 'pinia'
 import type { ItineraryDto } from '@/api/models'
 import { getApi } from '@/services/api'
-import itinerary from '@/components/Itinerary.vue'
-
-
+import type { ItineraryCreateEmailPostRequest, ItineraryGetEmailGetRequest } from '@/api/apis/ItineraryManagementApi'
 
 export const useItineraryStore = defineStore('itinerary', {
-
   state: () => ({
     itineraries: [] as ItineraryDto[],
     selected: null as ItineraryDto | null
   }),
 
   actions: {
-    const itineraryApi = getApi('ItineraryManagementApi'),
     /*
     setItineraries(list: ItineraryDto[]) {
       this.itineraries = list
@@ -27,24 +23,34 @@ export const useItineraryStore = defineStore('itinerary', {
       this.itineraries = this.itineraries.filter(i => i.title !== title)
     },
     */
-    async function loadItineraries(email: string) {
+    async loadItineraries(email: string) {
+      const itineraryApi = getApi('ItineraryManagementApi')
+      const request: ItineraryGetEmailGetRequest = {
+        email: email
+      }
       try {
-      const response = await itineraryApi.itineraryGetGet({ userId })
+      const response = await itineraryApi.itineraryGetEmailGetRaw({ request})
         this.itineraries = response.data
       } catch (error) {
         console.error('Failed to load itineraries:', error)
       }
     },
 
-    async function addNewItinerary(userId: number, itineraryDto: ItineraryDto) {
-       try {
-         const response = await itineraryApi.itineraryCreatePost({ userId, itineraryDto })
-         this.Itineraries.push(itineraryDto)
+    async addNewItinerary(email: string, itineraryDto: ItineraryDto) {
+      const itineraryApi = getApi('ItineraryManagementApi')
+      const request: ItineraryCreateEmailPostRequest = {
+        email: email,
+        itineraryDto: itineraryDto
+      }
+      try {
+         const response = await itineraryApi.itineraryCreateEmailPost({ request })
+         this.itineraries.push(itineraryDto)
+        if (response.status !== 200) {
+          console.error('Failed to add itinerary, status code:', response.status)
+        }
        } catch (error) {
          console.error('Failed to add itinerary:', error)
        }
     }
   },
-
-
 })

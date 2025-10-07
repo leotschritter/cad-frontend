@@ -2,11 +2,11 @@
 import { defineComponent, ref } from "vue";
 
 import type { ItineraryDto } from "@/api";
+import { useItineraryStore } from '@/stores/itinerary.ts'
 
 export default defineComponent({
   name: 'Itinerary',
   components: {},
-  props: {},
   data() {
     return {
       count: 0,
@@ -28,18 +28,18 @@ export default defineComponent({
         {title: 'Start date of the trip', key: 'startDate'},
         {title: 'Actions', key: 'actions', sortable: false, align: 'end' as const},
       ],
+      itineraryStore: (null as any),
     }
   },
   computed: {
-    itineraryStore() {
-      return useItineraryStore();
-    },
     itemsFromStore() {
-      return this.iteneraryStore.itineraries;
+      return this.itineraryStore.itineraries;
     }
   },
   created() {
-    this.itineraryStore.loadItineraries(123);
+
+    this.itineraryStore = useItineraryStore();
+    this.itineraryStore.loadItineraries();
   },
   methods: {
     open(action: 'create' | 'showDetails', item?: ItineraryDto) {
@@ -179,42 +179,4 @@ export default defineComponent({
       </v-card-actions>
     </v-card>
   </v-dialog>
-  <!--  &lt;!&ndash; Create dialog &ndash;&gt;
-    <v-dialog v-model="isCreate" max-width="520">
-      <v-card>
-        <v-card-title class="text-h6">Create Itinerary</v-card-title>
-        <v-card-text>
-          <v-form v-model="valid" @submit.prevent="close('submit')">
-            <v-text-field
-                v-model="newItinerary.name"
-                label="Name"
-                :rules="[v => !!v || 'Required']"
-                required
-            />
-            <v-text-field
-                v-model="newUser.email"
-                label="Email"
-                type="email"
-                :rules="[
-                v => !!v || 'Required',
-                v => /.+@.+\..+/.test(v) || 'Invalid email'
-              ]"
-                required
-            />
-            <v-select
-                v-model="newUser.role"
-                label="Role"
-                :items="['Admin','Editor','Viewer']"
-                :rules="[v => !!v || 'Required']"
-                required
-            />
-          </v-form>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn variant="text" @click="createOpen = false">Cancel</v-btn>
-          <v-btn color="primary" :disabled="!valid" @click="submitCreate">Create</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>-->
 </template>
