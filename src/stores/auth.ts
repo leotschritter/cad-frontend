@@ -9,10 +9,6 @@ export const useAuthStore = defineStore('auth', {
     user: null as UserDto | null,
   }),
 
-  getters: {
-    isLoggedIn: (s) => !!s.user,
-  },
-
   actions: {
     login(user: UserDto) {
       this.user = user
