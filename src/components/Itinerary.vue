@@ -2,11 +2,12 @@
 import { defineComponent, ref } from "vue";
 
 import type { ItineraryDto } from "@/api";
+import { useItineraryStore } from '@/stores/itinerary.ts'
+import { useAuthStore} from '@/stores/auth.ts'
 
 export default defineComponent({
   name: 'Itinerary',
   components: {},
-  props: {},
   data() {
     return {
       count: 0,
@@ -28,30 +29,23 @@ export default defineComponent({
         {title: 'Start date of the trip', key: 'startDate'},
         {title: 'Actions', key: 'actions', sortable: false, align: 'end' as const},
       ],
-      items: ref<ItineraryDto[]>([
-        {
-          title: 'Title 1',
-          destination: 'Ada Lovelace',
-          startDate: new Date('2024-06-01'),
-          shortDescription: 'Admin',
-          detailedDescription: 'lololololol'
-        },
-        {
-          title: 'Title 2',
-          destination: 'Ada Lovelace',
-          startDate: new Date('2024-06-01'),
-          shortDescription: 'Admin',
-          detailedDescription: 'lololololol'
-        },
-        {
-          title: 'Title 3',
-          destination: 'Ada Lovelace',
-          startDate: new Date('2024-06-01'),
-          shortDescription: 'Admin',
-          detailedDescription: 'lololololol'
-        },
-      ])
+      itineraryStore: (null as any),
+      authStore: (null as any),
     }
+  },
+  computed: {
+    itemsFromStore() {
+      return this.itineraryStore.itineraries;
+    }
+  },
+  created() {
+    this.authStore = useAuthStore();
+
+    console.log('Auth store user:', this.authStore.user);
+    console.log('Auth store user:', this.authStore.user.email);
+
+    this.itineraryStore = useItineraryStore();
+    this.itineraryStore.loadItineraries(this.authStore.user.email);
   },
   methods: {
     open(action: 'create' | 'showDetails', item?: ItineraryDto) {
@@ -64,6 +58,7 @@ export default defineComponent({
     },
     close(action: 'submit' | 'cancel' | 'closeDetails') {
       if (action === 'submit') {
+        this.itineraryStore.addNewItinerary(this.authStore.user.email, this.newItinerary as ItineraryDto);
         this.isCreate = false;
       } else if (action === 'cancel') {
         this.isCreate = false;
@@ -109,7 +104,7 @@ export default defineComponent({
 
     <v-data-table
         :headers="headers"
-        :items="items"
+        :items="itemsFromStore"
         :search="search"
         density="comfortable"
         item-key="id"
@@ -191,42 +186,4 @@ export default defineComponent({
       </v-card-actions>
     </v-card>
   </v-dialog>
-  <!--  &lt;!&ndash; Create dialog &ndash;&gt;
-    <v-dialog v-model="isCreate" max-width="520">
-      <v-card>
-        <v-card-title class="text-h6">Create Itinerary</v-card-title>
-        <v-card-text>
-          <v-form v-model="valid" @submit.prevent="close('submit')">
-            <v-text-field
-                v-model="newItinerary.name"
-                label="Name"
-                :rules="[v => !!v || 'Required']"
-                required
-            />
-            <v-text-field
-                v-model="newUser.email"
-                label="Email"
-                type="email"
-                :rules="[
-                v => !!v || 'Required',
-                v => /.+@.+\..+/.test(v) || 'Invalid email'
-              ]"
-                required
-            />
-            <v-select
-                v-model="newUser.role"
-                label="Role"
-                :items="['Admin','Editor','Viewer']"
-                :rules="[v => !!v || 'Required']"
-                required
-            />
-          </v-form>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn variant="text" @click="createOpen = false">Cancel</v-btn>
-          <v-btn color="primary" :disabled="!valid" @click="submitCreate">Create</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>-->
 </template>
