@@ -3,6 +3,7 @@ import { defineComponent, ref } from "vue";
 
 import type { ItineraryDto } from "@/api";
 import { useItineraryStore } from '@/stores/itinerary.ts'
+import { useAuthStore} from '@/stores/auth.ts'
 
 export default defineComponent({
   name: 'Itinerary',
@@ -29,6 +30,7 @@ export default defineComponent({
         {title: 'Actions', key: 'actions', sortable: false, align: 'end' as const},
       ],
       itineraryStore: (null as any),
+      authStore: (null as any),
     }
   },
   computed: {
@@ -37,9 +39,13 @@ export default defineComponent({
     }
   },
   created() {
+    this.authStore = useAuthStore();
+
+    console.log('Auth store user:', this.authStore.user);
+    console.log('Auth store user:', this.authStore.user.email);
 
     this.itineraryStore = useItineraryStore();
-    this.itineraryStore.loadItineraries();
+    this.itineraryStore.loadItineraries(this.authStore.user.email);
   },
   methods: {
     open(action: 'create' | 'showDetails', item?: ItineraryDto) {
@@ -52,6 +58,7 @@ export default defineComponent({
     },
     close(action: 'submit' | 'cancel' | 'closeDetails') {
       if (action === 'submit') {
+        this.itineraryStore.addNewItinerary(this.authStore.user.email, this.newItinerary as ItineraryDto);
         this.isCreate = false;
       } else if (action === 'cancel') {
         this.isCreate = false;
