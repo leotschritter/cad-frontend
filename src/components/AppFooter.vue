@@ -13,8 +13,8 @@ export default defineComponent({
         { name: 'Leo Tschritter',   email: 'le121tsc@htwg-konstanz.de' },
       ],
       repos: [
-        { label: 'Frontend Repo', url: 'https://github.com/leotschritter/cad-frontend' },
-        { label: 'Backend Repo',  url: 'https://github.com/leotschritter/cad-backend'  },
+        { label: 'Frontend', url: 'https://github.com/leotschritter/cad-frontend' },
+        { label: 'Backend',  url: 'https://github.com/leotschritter/cad-backend'  },
       ],
       year: new Date().getFullYear(),
     }
@@ -106,7 +106,7 @@ export default defineComponent({
 
 <style scoped>
 .footer-styles {
-  background-color: #1976d2; /* Vuetify primary color */
+  background: linear-gradient(135deg, #1976d2 0%, #009ffd 100%);
   color: white;
 }
 

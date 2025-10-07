@@ -38,10 +38,7 @@ export default defineComponent({
         const user: UserDto | null = await this.userStore.userLogin(this.form.email)
         if (user) {
           this.authStore.login(user)
-          this.$router.push({
-            name: 'home',
-            query: {email: user.email},
-          })
+          this.$router.push({ name: 'home' })
         } else {
           this.errorMsg = 'User not found'
         }

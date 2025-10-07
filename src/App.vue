@@ -49,11 +49,11 @@ export default defineComponent({
       <v-divider />
 
       <v-list density="compact" nav>
-        <v-list-item prepend-icon="mdi-home" title="Home" to="/" />
+        <v-list-item prepend-icon="mdi-routes" title="My Itineraries" to="/" />
       </v-list>
     </v-navigation-drawer>
 
-    <v-app-bar flat>
+    <v-app-bar class="app-bar-styles" flat>
       <v-app-bar-title>Travel App</v-app-bar-title>
     </v-app-bar>
 
@@ -71,7 +71,12 @@ export default defineComponent({
 
 <style scoped>
 .navigation-drawer-styles {
-  background-color: #1976d2;
-  color: white;
+  /*background-color: #1976d2;*/
+  background-color: rgb(238, 238, 238);
+  color: black;
+}
+.app-bar-styles {
+  background-color: rgb(238, 238, 238);
+  color: black;
 }
 </style>
