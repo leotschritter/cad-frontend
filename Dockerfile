@@ -16,7 +16,7 @@ COPY . .
 # Type-check + build (your "build" calls type-check + vite build)
 ARG VITE_BASE=/
 ENV BASE_URL=${VITE_BASE}
-RUN npm run build
+RUN npm run build-only
 
 # ===== runtime stage (static) =====
 FROM nginx:1.27-alpine
