@@ -23,14 +23,14 @@ FROM nginx:1.27-alpine
 # Copy build output
 COPY --from=build /app/dist /usr/share/nginx/html
 
-# Minimal nginx for SPA (history mode)
+# Minimal nginx for SPA (history mode) - Changed to port 5173
 RUN printf 'server { \
-  listen 8080; \
+  listen 5173; \
   server_name _; \
   root /usr/share/nginx/html; \
   index index.html; \
   location / { try_files $uri $uri/ /index.html; } \
 }\n' > /etc/nginx/conf.d/default.conf
 
-EXPOSE 8080
+EXPOSE 5173
 CMD ["nginx", "-g", "daemon off;"]
