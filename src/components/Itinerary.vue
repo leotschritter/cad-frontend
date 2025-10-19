@@ -4,10 +4,13 @@ import { defineComponent, ref } from "vue";
 import type { ItineraryDto } from "@/api";
 import { useItineraryStore } from '@/stores/itinerary.ts'
 import { useAuthStore} from '@/stores/auth.ts'
+import ItineraryDetails from '@/components/ItineraryDetails.vue'
 
 export default defineComponent({
   name: 'Itinerary',
-  components: {},
+  components: {
+    ItineraryDetails
+  },
   data() {
     return {
       count: 0,
@@ -93,7 +96,8 @@ export default defineComponent({
     <v-row justify="center">
       <v-col cols="12" sm="10" lg="8">
         <v-card>
-          <v-toolbar flat>
+          <v-toolbar flat color="primary" dark>
+            <v-icon class="ml-2 mr-2">mdi-map-search</v-icon>
             <v-toolbar-title>Itineraries</v-toolbar-title>
             <v-spacer/>
             <v-text-field
@@ -105,7 +109,7 @@ export default defineComponent({
                 hide-details
                 style="max-width: 260px"
             />
-            <v-btn color="primary" class="ml-2" prepend-icon="mdi-plus" @click="open('create')">
+            <v-btn color="white" variant="text" class="ml-2" prepend-icon="mdi-plus" @click="open('create')">
               Create
             </v-btn>
           </v-toolbar>
@@ -134,24 +138,12 @@ export default defineComponent({
         </v-card>
 
         <!-- Details dialog -->
-        <v-dialog v-model="isDetails" max-width="520">
-          <v-card>
-            <v-card-title class="text-h6">Itinerary details</v-card-title>
-            <v-card-text v-if="selected">
-              <v-list lines="one">
-                <v-list-item title="Title" :subtitle="selected.title"/>
-                <v-list-item title="Destination" :subtitle="selected.destination"/>
-                <v-list-item title="Start date of the trip" :subtitle="fmtDate(selected.startDate)"/>
-                <v-list-item title="Short description of the trip" :subtitle="selected.shortDescription"/>
-                <v-list-item title="Detail description of the trip" :subtitle="selected.detailedDescription"/>
-              </v-list>
-            </v-card-text>
-            <v-card-actions>
-              <v-spacer/>
-              <v-btn variant="text" @click="close('closeDetails')">Close</v-btn>
-            </v-card-actions>
-          </v-card>
-        </v-dialog>
+        <ItineraryDetails
+            v-model="isDetails"
+            :itinerary="selected"
+            @close="close('closeDetails')"
+        />
+
         <!-- Create dialog -->
         <v-dialog v-model="isCreate" max-width="520">
           <v-card>

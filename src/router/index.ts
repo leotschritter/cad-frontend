@@ -12,6 +12,12 @@ const router = createRouter({
       component: HomeView,
     },
     {
+      path: '/search',
+      name: 'search',
+      meta: { requiresAuth: true },
+      component: () => import('../views/SearchItinerariesView.vue'),
+    },
+    {
       path: '/register',
       name: 'register',
       component: () => import('../components/UserRegistration.vue'),
