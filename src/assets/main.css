@@ -21,4 +21,5 @@ a,
 
 .v-card header.v-toolbar {
   background: linear-gradient(135deg, #1976d2 0%, #009ffd 100%) !important;
+  color: white;
 }
