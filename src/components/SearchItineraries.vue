@@ -225,7 +225,7 @@ export default defineComponent({
       </v-row>
 
       <v-row class="mt-2">
-        <v-col cols="12" class="d-flex gap-2">
+        <v-col cols="12" class="d-flex ga-2">
           <v-btn
               color="primary"
               size="large"
