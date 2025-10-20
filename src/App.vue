@@ -107,11 +107,18 @@ export default defineComponent({
   color: black;
 }
 
+@font-face {
+  font-family: 'Mouldism';
+  src: url('@/assets/fonts/D3MouldismR.TTF') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
 .brand-name {
-  font-family: 'Poppins', sans-serif;
-  font-weight: 700;
-  font-size: 1.5rem;
-  letter-spacing: 0.5px;
+  font-family: 'Mouldism', sans-serif;
+  font-weight: normal;
+  font-size: 1.8rem;
+  letter-spacing: 1.5px;
   color: #1976d2;
 }
 
