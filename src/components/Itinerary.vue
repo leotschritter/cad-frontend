@@ -147,7 +147,10 @@ export default defineComponent({
         <!-- Create dialog -->
         <v-dialog v-model="isCreate" max-width="520">
           <v-card>
-            <v-card-title class="text-h6">Create Itinerary</v-card-title>
+            <v-card-title class="text-h6 bg-primary">
+              <v-icon class="mr-2">mdi-plus-box</v-icon>
+              Create Itinerary
+            </v-card-title>
             <v-card-text>
               <v-form v-model="valid" @submit.prevent="close('submit')">
                 <v-text-field
