@@ -3,12 +3,14 @@ import { RouterView } from 'vue-router'
 import { defineComponent } from "vue";
 import { useAuthStore } from "@/stores/auth.ts";
 import AppFooter from "@/components/AppFooter.vue";
+import logo from '@/assets/images/tripico-logo.png'
 
 export default defineComponent({
   name: 'App',
   data() {
     return {
-      authStore: null as any
+      authStore: null as any,
+      logo: logo
     }
   },
   components: {
@@ -64,7 +66,17 @@ export default defineComponent({
     </v-navigation-drawer>
 
     <v-app-bar class="app-bar-styles" flat>
-      <v-app-bar-title>Tripico</v-app-bar-title>
+      <v-img
+          :src="logo"
+          max-height="60"
+          max-width="60"
+          class="ml-4"
+          contain
+      />
+      <v-app-bar-title class="d-flex align-center">
+        <span class="brand-name">Tripico</span>
+        <span class="brand-slogan ml-2">– Discover. Share. Feel.</span>
+      </v-app-bar-title>
 
       <v-spacer />
       <v-btn v-if="isLoggedIn" prepend-icon="mdi-logout" variant="text" @click="logout">
@@ -93,5 +105,21 @@ export default defineComponent({
 .app-bar-styles {
   background-color: rgb(238, 238, 238);
   color: black;
+}
+
+.brand-name {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  font-size: 1.5rem;
+  letter-spacing: 0.5px;
+  color: #1976d2;
+}
+
+.brand-slogan {
+  font-family: 'Quicksand', sans-serif;
+  font-weight: 400;
+  font-size: 0.95rem;
+  color: #666;
+  font-style: italic;
 }
 </style>
