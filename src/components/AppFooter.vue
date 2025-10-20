@@ -108,6 +108,7 @@ export default defineComponent({
 .footer-styles {
   background: linear-gradient(135deg, #1976d2 0%, #009ffd 100%);
   color: white;
+  position: absolute !important;
 }
 
 .opacity-80 { opacity: .8; }
