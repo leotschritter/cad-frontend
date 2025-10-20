@@ -73,7 +73,10 @@ export default defineComponent({
           class="ml-4"
           contain
       />
-      <v-app-bar-title>Tripico - Discover. Share. Feel.</v-app-bar-title>
+      <v-app-bar-title class="d-flex align-center">
+        <span class="brand-name">Tripico</span>
+        <span class="brand-slogan ml-2">– Discover. Share. Feel.</span>
+      </v-app-bar-title>
 
       <v-spacer />
       <v-btn v-if="isLoggedIn" prepend-icon="mdi-logout" variant="text" @click="logout">
@@ -102,5 +105,21 @@ export default defineComponent({
 .app-bar-styles {
   background-color: rgb(238, 238, 238);
   color: black;
+}
+
+.brand-name {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  font-size: 1.5rem;
+  letter-spacing: 0.5px;
+  color: #1976d2;
+}
+
+.brand-slogan {
+  font-family: 'Quicksand', sans-serif;
+  font-weight: 400;
+  font-size: 0.95rem;
+  color: #666;
+  font-style: italic;
 }
 </style>
