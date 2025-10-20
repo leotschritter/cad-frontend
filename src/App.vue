@@ -25,6 +25,15 @@ export default defineComponent({
     },
     getName(): string {
       return this.authStore?.user?.name ?? 'Log in to see name'
+    },
+    isLoggedIn(): boolean {
+      return this.authStore?.user != null;
+    }
+  },
+  methods: {
+    logout() {
+      this.authStore.logout();
+      this.$router.push({ name: 'login' });
     }
   }
 })
@@ -55,7 +64,12 @@ export default defineComponent({
     </v-navigation-drawer>
 
     <v-app-bar class="app-bar-styles" flat>
-      <v-app-bar-title>Travel App</v-app-bar-title>
+      <v-app-bar-title>Tripico</v-app-bar-title>
+
+      <v-spacer />
+      <v-btn v-if="isLoggedIn" prepend-icon="mdi-logout" variant="text" @click="logout">
+        Logout
+      </v-btn>
     </v-app-bar>
 
     <v-main style="min-height: 100vh; min-width: 100%">
