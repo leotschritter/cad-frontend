@@ -1,10 +1,9 @@
+.openapi-generator-ignore
 apis/ItineraryManagementApi.ts
 apis/UserManagementApi.ts
 apis/index.ts
 index.ts
 models/ItineraryDto.ts
-models/ItinerarySearchDto.ts
-models/ItinerarySearchResponseDto.ts
 models/UserDto.ts
 models/index.ts
 runtime.ts

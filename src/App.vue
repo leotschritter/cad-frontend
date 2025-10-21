@@ -3,14 +3,12 @@ import { RouterView } from 'vue-router'
 import { defineComponent } from "vue";
 import { useAuthStore } from "@/stores/auth.ts";
 import AppFooter from "@/components/AppFooter.vue";
-import logo from '@/assets/images/tripico-logo.png'
 
 export default defineComponent({
   name: 'App',
   data() {
     return {
-      authStore: null as any,
-      logo: logo
+      authStore: null as any
     }
   },
   components: {
@@ -27,15 +25,6 @@ export default defineComponent({
     },
     getName(): string {
       return this.authStore?.user?.name ?? 'Log in to see name'
-    },
-    isLoggedIn(): boolean {
-      return this.authStore?.user != null;
-    }
-  },
-  methods: {
-    logout() {
-      this.authStore.logout();
-      this.$router.push({ name: 'login' });
     }
   }
 })
@@ -61,27 +50,11 @@ export default defineComponent({
 
       <v-list density="compact" nav>
         <v-list-item prepend-icon="mdi-routes" title="My Itineraries" to="/" />
-        <v-list-item prepend-icon="mdi-magnify" title="Search Itineraries" to="/search" />
       </v-list>
     </v-navigation-drawer>
 
     <v-app-bar class="app-bar-styles" flat>
-      <v-img
-          :src="logo"
-          max-height="60"
-          max-width="60"
-          class="ml-4"
-          contain
-      />
-      <v-app-bar-title class="d-flex align-center">
-        <span class="brand-name">Tripico</span>
-        <span class="brand-slogan ml-2">– Discover. Share. Feel.</span>
-      </v-app-bar-title>
-
-      <v-spacer />
-      <v-btn v-if="isLoggedIn" prepend-icon="mdi-logout" variant="text" @click="logout">
-        Logout
-      </v-btn>
+      <v-app-bar-title>Travel App</v-app-bar-title>
     </v-app-bar>
 
     <v-main style="min-height: 100vh; min-width: 100%">
@@ -105,28 +78,5 @@ export default defineComponent({
 .app-bar-styles {
   background-color: rgb(238, 238, 238);
   color: black;
-}
-
-@font-face {
-  font-family: 'Mouldism';
-  src: url('@/assets/fonts/D3MouldismR.TTF') format('truetype');
-  font-weight: normal;
-  font-style: normal;
-}
-
-.brand-name {
-  font-family: 'Mouldism', sans-serif;
-  font-weight: normal;
-  font-size: 1.8rem;
-  letter-spacing: 1.5px;
-  color: #1976d2;
-}
-
-.brand-slogan {
-  font-family: 'Quicksand', sans-serif;
-  font-weight: 400;
-  font-size: 0.95rem;
-  color: #666;
-  font-style: italic;
 }
 </style>
