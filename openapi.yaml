@@ -20,38 +20,6 @@ components:
           type: string
         detailedDescription:
           type: string
-    ItinerarySearchDto:
-      type: object
-      properties:
-        userName:
-          type: string
-        userEmail:
-          type: string
-        title:
-          type: string
-        destination:
-          type: string
-        description:
-          type: string
-        startDateFrom:
-          $ref: "#/components/schemas/LocalDate"
-        startDateTo:
-          $ref: "#/components/schemas/LocalDate"
-    ItinerarySearchResponseDto:
-      type: object
-      properties:
-        title:
-          type: string
-        destination:
-          type: string
-        startDate:
-          $ref: "#/components/schemas/LocalDate"
-        shortDescription:
-          type: string
-        detailedDescription:
-          type: string
-        userName:
-          type: string
     LocalDate:
       type: string
       format: date
@@ -296,78 +264,6 @@ paths:
             application/json:
               example:
                 error: An error occurred while retrieving itineraries
-  /itinerary/search:
-    post:
-      summary: Search itineraries
-      description: "Search for itineraries based on various criteria including user\
-        \ name, user email, title, destination, description, and start date range.\
-        \ All search parameters are optional - empty/null values will be ignored."
-      tags:
-        - Itinerary Management
-      requestBody:
-        description: Search criteria - all fields are optional
-        content:
-          application/json:
-            examples:
-              Search by destination:
-                summary: Search for all itineraries to Norway
-                value:
-                  destination: Norway
-              Search by user and date range:
-                summary: Search for user's itineraries in a specific date range
-                value:
-                  userName: John
-                  startDateFrom: 2025-06-01
-                  startDateTo: 2025-12-31
-              Complex search:
-                summary: Search with multiple criteria
-                value:
-                  userName: Smith
-                  destination: Japan
-                  description: culture
-                  startDateFrom: 2025-01-01
-              Empty search:
-                summary: Get all itineraries (up to 100)
-                value: {}
-            schema:
-              $ref: "#/components/schemas/ItinerarySearchDto"
-        required: true
-      responses:
-        "200":
-          description: Search completed successfully
-          content:
-            application/json:
-              examples:
-                Search Results Example:
-                  summary: Example of search results
-                  value:
-                    - title: Summer in Paris
-                      destination: France
-                      startDate: 2025-07-01
-                      shortDescription: Romantic getaway in Paris
-                      detailedDescription: "A week-long romantic trip exploring the\
-                      \ city of lights, including visits to the Eiffel Tower, Louvre\
-                      \ Museum, and Seine river cruises."
-                      userName: Alice Johnson
-                    - title: Beach Vacation in Maldives
-                      destination: Maldives
-                      startDate: 2025-08-15
-                      shortDescription: Tropical paradise retreat
-                      detailedDescription: "Relaxing beach vacation in an overwater\
-                      \ bungalow with snorkeling, diving, and spa treatments."
-                      userName: Bob Williams
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/ItinerarySearchResponseDto"
-        "500":
-          description: Internal server error
-          content:
-            application/json:
-              example:
-                error: An error occurred while searching itineraries
-        "400":
-          description: Bad Request
   /user/get:
     get:
       summary: Get user by email

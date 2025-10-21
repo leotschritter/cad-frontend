@@ -16,16 +16,10 @@
 import * as runtime from '../runtime';
 import type {
   ItineraryDto,
-  ItinerarySearchDto,
-  ItinerarySearchResponseDto,
 } from '../models/index';
 import {
     ItineraryDtoFromJSON,
     ItineraryDtoToJSON,
-    ItinerarySearchDtoFromJSON,
-    ItinerarySearchDtoToJSON,
-    ItinerarySearchResponseDtoFromJSON,
-    ItinerarySearchResponseDtoToJSON,
 } from '../models/index';
 
 export interface ItineraryCreateEmailPostRequest {
@@ -44,10 +38,6 @@ export interface ItineraryGetEmailGetRequest {
 
 export interface ItineraryGetGetRequest {
     userId: number;
-}
-
-export interface ItinerarySearchPostRequest {
-    itinerarySearchDto: ItinerarySearchDto;
 }
 
 /**
@@ -232,47 +222,6 @@ export class ItineraryManagementApi extends runtime.BaseAPI {
      */
     async itineraryGetGet(requestParameters: ItineraryGetGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<ItineraryDto>> {
         const response = await this.itineraryGetGetRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
-
-    /**
-     * Search for itineraries based on various criteria including user name, user email, title, destination, description, and start date range. All search parameters are optional - empty/null values will be ignored.
-     * Search itineraries
-     */
-    async itinerarySearchPostRaw(requestParameters: ItinerarySearchPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<ItinerarySearchResponseDto>>> {
-        if (requestParameters['itinerarySearchDto'] == null) {
-            throw new runtime.RequiredError(
-                'itinerarySearchDto',
-                'Required parameter "itinerarySearchDto" was null or undefined when calling itinerarySearchPost().'
-            );
-        }
-
-        const queryParameters: any = {};
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-        headerParameters['Content-Type'] = 'application/json';
-
-
-        let urlPath = `/itinerary/search`;
-
-        const response = await this.request({
-            path: urlPath,
-            method: 'POST',
-            headers: headerParameters,
-            query: queryParameters,
-            body: ItinerarySearchDtoToJSON(requestParameters['itinerarySearchDto']),
-        }, initOverrides);
-
-        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(ItinerarySearchResponseDtoFromJSON));
-    }
-
-    /**
-     * Search for itineraries based on various criteria including user name, user email, title, destination, description, and start date range. All search parameters are optional - empty/null values will be ignored.
-     * Search itineraries
-     */
-    async itinerarySearchPost(requestParameters: ItinerarySearchPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<ItinerarySearchResponseDto>> {
-        const response = await this.itinerarySearchPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
