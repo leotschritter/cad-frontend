@@ -1,5 +1,5 @@
 # ===== build stage =====
-# Satisfies "node": "^20.19.0 || >=22.12.0"
+# Satisfies "node": "^20.19.0  >=22.12.0"
 FROM node:22-alpine AS build
 WORKDIR /app
 
@@ -13,6 +13,10 @@ RUN npm ci --no-audit --no-fund;
 # Copy the rest (includes openapi.yaml so api:gen can run)
 COPY . .
 
+# Accept VITE_API_BASE_URL as build arg and set it as env var for Vite
+ARG VITE_API_BASE_URL=http://localhost:8080
+ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
+
 # Type-check + build (your "build" calls type-check + vite build)
 ARG VITE_BASE=/
 ENV BASE_URL=${VITE_BASE}
@@ -23,14 +27,14 @@ FROM nginx:1.27-alpine
 # Copy build output
 COPY --from=build /app/dist /usr/share/nginx/html
 
-# Minimal nginx for SPA (history mode) - Changed to port 5173
+# Create nginx config that uses PORT env var (defaults to 8080)
 RUN printf 'server { \
-  listen 5173; \
+  listen $PORT; \
   server_name _; \
   root /usr/share/nginx/html; \
   index index.html; \
   location / { try_files $uri $uri/ /index.html; } \
-}\n' > /etc/nginx/conf.d/default.conf
+}\n' > /etc/nginx/conf.d/default.conf.template
 
-EXPOSE 5173
-CMD ["nginx", "-g", "daemon off;"]
+# Use envsubst to replace $PORT at runtime, then start nginx
+CMD /bin/sh -c "envsubst '\$PORT' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
