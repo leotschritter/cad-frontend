@@ -15,7 +15,7 @@
 import { defineComponent } from 'vue'
 import 'leaflet/dist/leaflet.css'
 import * as L from 'leaflet'
-import type { Destination } from './TripView.vue'
+import type { Locations } from './TripView.vue'
 
 // Fix marker icon paths in bundlers
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png?url'
@@ -34,8 +34,8 @@ export default defineComponent({
   name: 'TripMap',
   components: {},
   props: {
-    destinations: {
-      type: Array as () => Destination[],
+    locations: {
+      type: Array as () => Locations[],
     },
     expanded: {
       type: Boolean,
@@ -53,8 +53,8 @@ export default defineComponent({
     }
   },
   computed: {
-    withCoords(): Destination[] {
-      return (this.destinations ?? []).filter(
+    withCoords(): Locations[] {
+      return (this.locations ?? []).filter(
           d => typeof d.lat === 'number' && typeof d.lng === 'number'
       )
     },

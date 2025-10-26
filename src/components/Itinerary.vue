@@ -5,11 +5,13 @@ import type { ItineraryDto } from "@/api";
 import { useItineraryStore } from '@/stores/itinerary.ts'
 import { useAuthStore} from '@/stores/auth.ts'
 import ItineraryDetails from '@/components/ItineraryDetails.vue'
+import TripView from '@/components/TripView.vue'
 
 export default defineComponent({
   name: 'Itinerary',
   components: {
-    ItineraryDetails
+    ItineraryDetails,
+    TripView
   },
   data() {
     return {
@@ -17,7 +19,9 @@ export default defineComponent({
       search: ref(''),
       isCreate: ref(false),
       isDetails: ref(false),
+      isEditLocations: ref(false),
       selected: ref<ItineraryDto | null>(null),
+      editingItinerary: ref<ItineraryDto | null>(null),
       valid: ref(false),
       newItinerary: {
         title: '',
@@ -48,15 +52,18 @@ export default defineComponent({
     this.itineraryStore.loadItineraries(this.authStore.user.email);
   },
   methods: {
-    open(action: 'create' | 'showDetails', item?: ItineraryDto) {
+    open(action: 'create' | 'showDetails' | 'editLocations', item?: ItineraryDto) {
       if (action === 'create') {
         this.isCreate = true;
       } else if (action === 'showDetails') {
         this.selected = item || null;
         this.isDetails = true;
+      } else if (action === 'editLocations') {
+        this.editingItinerary = item || null;
+        this.isEditLocations = true;
       }
     },
-    close(action: 'submit' | 'cancel' | 'closeDetails') {
+    close(action: 'submit' | 'cancel' | 'closeDetails' | 'submitLocations' | 'cancelLocations') {
       if (action === 'submit') {
         this.itineraryStore.addNewItinerary(this.authStore.user.email, this.newItinerary as ItineraryDto);
         this.clearItinerary();
@@ -67,6 +74,14 @@ export default defineComponent({
       } else if (action === 'closeDetails') {
         this.isDetails = false;
         this.selected = null;
+      } else if (action === 'submitLocations') {
+        // Handle saving the locations data here
+        // You can update the itinerary in the store
+        this.isEditLocations = false;
+        this.editingItinerary = null;
+      } else if (action === 'cancelLocations') {
+        this.isEditLocations = false;
+        this.editingItinerary = null;
       }
     },
     clearItinerary() {
@@ -133,6 +148,14 @@ export default defineComponent({
               >
                 Details
               </v-btn>
+              <v-btn
+                  size="small"
+                  variant="text"
+                  prepend-icon="mdi-map-marker-path"
+                  @click="open('editLocations', item)"
+              >
+                Edit Locations
+              </v-btn>
             </template>
           </v-data-table>
         </v-card>
@@ -189,6 +212,32 @@ export default defineComponent({
               <v-spacer/>
               <v-btn variant="text" @click="close('cancel')">Cancel</v-btn>
               <v-btn color="primary" :disabled="!valid" @click="close('submit')">Create</v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
+
+        <!-- Edit Locations dialog -->
+        <v-dialog v-model="isEditLocations" max-width="90vw" persistent>
+          <v-card style="max-height: 90vh;">
+            <v-card-title class="text-h6 bg-primary d-flex align-center">
+              <v-icon class="mr-2">mdi-map-marker-path</v-icon>
+              Edit Locations - {{ editingItinerary?.title || '' }}
+              <v-chip v-if="editingItinerary?.destination" size="small" class="ml-3" variant="tonal">
+                {{ editingItinerary.destination }}
+              </v-chip>
+            </v-card-title>
+            <v-card-text class="pa-4" style="height: calc(90vh - 140px); overflow-y: auto;">
+              <TripView
+                  v-if="editingItinerary"
+                  :short-description="editingItinerary.shortDescription"
+                  @submit="close('submitLocations')"
+                  @cancel="close('cancelLocations')"
+              />
+            </v-card-text>
+            <v-card-actions class="pa-4">
+              <v-spacer/>
+              <v-btn variant="text" size="large" @click="close('cancelLocations')">Cancel</v-btn>
+              <v-btn color="primary" variant="flat" size="large" @click="close('submitLocations')">Save Changes</v-btn>
             </v-card-actions>
           </v-card>
         </v-dialog>

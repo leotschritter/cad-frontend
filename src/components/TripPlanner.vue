@@ -2,7 +2,7 @@
 <template>
   <v-card class="mx-auto my-6" max-width="900">
     <v-toolbar flat density="comfortable">
-      <v-toolbar-title>An Italian Adventure</v-toolbar-title>
+      <v-toolbar-title>{{ shortDescription }}</v-toolbar-title>
       <v-spacer />
       <v-chip class="ma-2" variant="elevated">Nights planned: {{ totalNights }}</v-chip>
     </v-toolbar>
@@ -11,7 +11,7 @@
 
     <div class="px-4 py-2 text-grey-darken-1 text-caption d-none d-md-flex">
       <div class="w-8 mr-2"></div>
-      <div class="flex-1 font-medium">Destination</div>
+      <div class="flex-1 font-medium">Location</div>
       <div class="w-32 text-center font-medium">Nights</div>
       <div class="w-48 text-center font-medium">Transport (from previous)</div>
     </div>
@@ -399,19 +399,22 @@
 <script setup lang="ts">
 import { ref, computed, nextTick } from 'vue'
 import Draggable from 'vuedraggable'
-import type { Destination } from './TripView.vue'
+import type { Locations } from './TripView.vue'
 
 /** Props & emits */
-const props = defineProps<{ destinations: Destination[] }>()
+const props = defineProps<{
+  locations: Locations[],
+  shortDescription?: string,
+}>()
 const emit = defineEmits<{
-  (e: 'update:destinations', value: Destination[]): void
+  (e: 'update:locations', value: Locations[]): void
   (e: 'geocode-request', index: number, query: string): void
 }>()
 
 /** v-model proxy for the prop so Draggable always has a real array */
-const itemsModel = computed<Destination[]>({
-  get: () => props.destinations ?? [],
-  set: (val) => emit('update:destinations', val ?? []),
+const itemsModel = computed<Locations[]>({
+  get: () => props.locations ?? [],
+  set: (val) => emit('update:locations', val ?? []),
 })
 
 /** Top chip total */
@@ -434,12 +437,12 @@ function emitUpdate() {
 }
 
 /** Nights & date helpers */
-function incNights(d: Destination) {
+function incNights(d: Locations) {
   d.nights = Number(d.nights || 0) + 1
   syncEndFromNights(d)
   emitUpdate()
 }
-function decNights(d: Destination) {
+function decNights(d: Locations) {
   d.nights = Math.max(1, Number(d.nights || 0) - 1)
   syncEndFromNights(d)
   emitUpdate()
@@ -451,11 +454,11 @@ function dateDiffInNights(start?: string, end?: string) {
   const ms = e.getTime() - s.getTime()
   return Math.max(1, Math.round(ms / (1000 * 60 * 60 * 24)))
 }
-function recomputeNights(d: Destination) {
+function recomputeNights(d: Locations) {
   if (d.start && d.end) d.nights = dateDiffInNights(d.start, d.end)
   emitUpdate()
 }
-function syncEndFromNights(d: Destination) {
+function syncEndFromNights(d: Locations) {
   if (!d.start || !d.nights) return
   const s = new Date(d.start)
   const e = new Date(s)
@@ -469,7 +472,7 @@ function addDestination() {
   if (!name) return
   const last = itemsModel.value[itemsModel.value.length - 1]
   const start = last?.end || new Date().toISOString().slice(0, 10)
-  const d: Destination = {
+  const d: Locations = {
     id: Date.now(),
     name,
     start,
@@ -516,7 +519,7 @@ function formatDate(d?: string) {
 }
 
 /** Accommodation dialog state */
-const accDialog = ref<{ open: boolean; model: Destination | null }>({ open: false, model: null })
+const accDialog = ref<{ open: boolean; model: Locations | null }>({ open: false, model: null })
 const accForm = ref({
   name: '',
   address: '',
@@ -527,7 +530,7 @@ const accForm = ref({
   notes: '',
 })
 
-function openAccDialog(destination: Destination) {
+function openAccDialog(destination: Locations) {
   accDialog.value = { open: true, model: destination }
   const cur: any = destination.accommodation ?? {}
   accForm.value = {
@@ -546,15 +549,15 @@ function saveAccommodation() {
   accDialog.value.open = false
   emitUpdate()
 }
-function removeAccommodation(destination: Destination) {
+function removeAccommodation(destination: Locations) {
   destination.accommodation = null
   emitUpdate()
 }
 
 /** Delete confirmation dialog state */
-const deleteDialog = ref<{ open: boolean; model: Destination | null }>({ open: false, model: null })
+const deleteDialog = ref<{ open: boolean; model: Locations | null }>({ open: false, model: null })
 
-function openDeleteDialog(destination: Destination) {
+function openDeleteDialog(destination: Locations) {
   deleteDialog.value = { open: true, model: destination }
 }
 function confirmDelete() {

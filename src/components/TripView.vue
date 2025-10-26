@@ -2,15 +2,16 @@
   <div class="d-flex flex-lg-row justify-center align-center gap-4">
     <div class="flex-1 map-pane">
       <TripPlanner
-          :destinations="destinations"
-          @update:destinations="onPlannerUpdate"
+          :locations="locations"
+          :short-description="shortDescription"
+          @update:locations="onPlannerUpdate"
           @geocode-request="onGeocodeRequest"
       />
     </div>
     <!-- Inline (collapsed) map -->
     <div v-if="!mapExpanded" class="flex-1" style="height: 560px;">
       <TripMap
-          :destinations="destinations"
+          :locations="locations"
           v-model:expanded="mapExpanded"
       />
     </div>
@@ -20,7 +21,7 @@
   <div v-if="mapExpanded" class="map-overlay" @click.self="mapExpanded = false">
     <div class="map-dialog" role="dialog" aria-modal="true">
       <TripMap
-          :destinations="destinations"
+          :locations="locations"
           v-model:expanded="mapExpanded"
       />
     </div>
@@ -33,7 +34,7 @@ import TripPlanner from './TripPlanner.vue'
 import TripMap from './TripMap.vue'
 import { useNominatim } from './useNominatim'
 
-export type Destination = {
+export type Locations = {
   id: number
   name: string
   start: string
@@ -54,7 +55,18 @@ export type Destination = {
   }
 }
 
-const destinations = ref<Destination[]>([
+// Accept optional props
+const props = defineProps<{
+  shortDescription?: string,
+  initialDestinations?: Locations[]
+}>()
+
+const emit = defineEmits<{
+  (e: 'submit', locations: Locations[]): void
+  (e: 'cancel'): void
+}>()
+
+const locations = ref<Locations[]>(props.initialDestinations || [
   { id: 1, name: 'Milano',  start: '2025-06-02', end: '2025-06-05', nights: 2, lat: 45.4642, lng: 9.19,    address: 'Milan, Italy',   transport: { mode: null,   duration: '2h 27m', distance: null }, accommodation: null },
   { id: 2, name: 'Venice',  start: '2025-06-05', end: '2025-06-08', nights: 3, lat: 45.4408, lng: 12.3155, address: 'Venezia, Italy', transport: { mode: 'train', duration: '2h 13m', distance: null }, accommodation: { name: 'Canal View Boutique', rating: 4.5, pricePerNight: '€180' } },
   { id: 3, name: 'Florence',start: '2025-06-08', end: '2025-06-12', nights: 3, lat: 43.7696, lng: 11.2558, address: 'Firenze, Italy',  transport: { mode: 'car',   duration: null,    distance: '231 km' }, accommodation: null },
@@ -63,9 +75,9 @@ const destinations = ref<Destination[]>([
 
 const { geocode } = useNominatim()
 
-function onPlannerUpdate(next: Destination[]) {
+function onPlannerUpdate(next: Locations[]) {
   // Replace array to keep reactivity straightforward across children
-  destinations.value = next
+  locations.value = next
 }
 
 async function onGeocodeRequest(idx: number, query: string) {
@@ -73,7 +85,7 @@ async function onGeocodeRequest(idx: number, query: string) {
   const hit = await geocode(query)
   console.log(hit)
   if (!hit) return
-  const d = destinations.value[idx]
+  const d = locations.value[idx]
 
   if (!d) return
   d.name = hit.shortLabel
