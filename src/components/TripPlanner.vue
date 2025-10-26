@@ -4,7 +4,7 @@
     <v-toolbar flat density="comfortable">
       <v-toolbar-title>An Italian Adventure</v-toolbar-title>
       <v-spacer />
-      <v-chip variant="elevated">Nights planned: {{ totalNights }}</v-chip>
+      <v-chip class="ma-2" variant="elevated">Nights planned: {{ totalNights }}</v-chip>
     </v-toolbar>
 
     <v-divider />
@@ -39,74 +39,98 @@
                   <v-icon icon="mdi-drag" />
                 </v-btn>
 
-                <v-avatar size="24" class="mr-3" color="primary" variant="tonal">
-                  <span class="text-caption">{{ index + 1 }}</span>
+                <v-avatar size="28" class="mr-3" color="primary" variant="tonal">
+                  <span class="text-body-2 font-weight-bold">{{ index + 1 }}</span>
                 </v-avatar>
 
                 <div class="flex-1">
-                  <!-- Editable name + lookup (geocode) -->
-                  <div class="d-flex align-center" style="gap:.5rem;">
-                    <v-text-field
-                        v-model="element.name"
-                        variant="outlined"
-                        density="comfortable"
-                        label="Location"
-                        hide-details
-                        class="flex-1"
-                        @blur="emitUpdate"
-                    />
-                    <v-btn
-                        size="small"
-                        variant="tonal"
-                        prepend-icon="mdi-crosshairs-gps"
-                        @click.stop="$emit('geocode-request', index, element.name || '')"
-                    >
-                      Lookup
-                    </v-btn>
+                  <!-- Display name when collapsed -->
+                  <div class="text-h6 font-weight-light">
+                    {{ element.name || 'New Destination' }}
                   </div>
-
                   <div class="text-caption text-grey-darken-1 mt-1">
                     {{ formatDate(element.start) }} – {{ formatDate(element.end) }}
+                    <v-chip size="x-small" class="ml-2" variant="text">{{ element.nights }} night{{ element.nights !== 1 ? 's' : '' }}</v-chip>
                   </div>
                 </div>
 
-                <div class="w-32 d-flex align-center justify-center mr-4">
+                <!-- Nights +/- buttons -->
+                <div class="d-none d-md-flex align-center mr-4">
                   <v-btn
+                      icon
                       size="small"
                       variant="text"
-                      icon
-                      :disabled="(element.nights || 1) <= 1"
                       @click.stop="decNights(element)"
+                      :disabled="element.nights <= 1"
                   >
-                    <v-icon icon="mdi-minus" />
+                    <v-icon size="20">mdi-minus</v-icon>
                   </v-btn>
-                  <v-chip class="mx-1" variant="outlined" size="small">{{ element.nights }}</v-chip>
-                  <v-btn size="small" variant="text" icon @click.stop="incNights(element)">
-                    <v-icon icon="mdi-plus" />
+                  <div class="px-2 text-body-2 font-weight-medium" style="min-width: 2rem; text-align: center;">
+                    {{ element.nights }}
+                  </div>
+                  <v-btn
+                      icon
+                      size="small"
+                      variant="text"
+                      @click.stop="incNights(element)"
+                  >
+                    <v-icon size="20">mdi-plus</v-icon>
                   </v-btn>
                 </div>
 
-                <div class="w-48 d-none d-md-flex align-center justify-center mr-2">
+                <div class="d-none d-md-flex align-center justify-center mr-2">
                   <v-chip v-if="element.transport?.mode" size="small" class="mr-2" variant="tonal">
                     <v-icon start :icon="transportIcon(element.transport.mode)" />
                     {{ prettyMode(element.transport.mode) }}
                   </v-chip>
-                  <span v-if="element.transport?.duration" class="text-caption mr-2">
-                    {{ element.transport.duration }}
-                  </span>
-                  <span v-if="element.transport?.distance" class="text-caption">
-                    {{ element.transport.distance }}
-                  </span>
                 </div>
 
-<!--                <v-btn icon variant="text">
-                  <v-icon icon="mdi-chevron-down" />
-                </v-btn>-->
+                <!-- Delete button -->
+                <v-btn
+                    icon
+                    size="small"
+                    variant="text"
+                    color="error"
+                    @click.stop="openDeleteDialog(element)"
+                    title="Delete destination"
+                >
+                  <v-icon size="20">mdi-delete</v-icon>
+                </v-btn>
               </div>
             </v-expansion-panel-title>
 
             <v-expansion-panel-text>
               <div class="px-2 py-1 d-flex flex-column gap-4">
+                <!-- Editable location name + geocode lookup -->
+                <div>
+                  <div class="text-subtitle-2 mb-2">Location</div>
+                  <div class="d-flex align-center" style="gap:.75rem;">
+                    <v-text-field
+                        v-model="element.name"
+                        
+                        density="comfortable"
+                        placeholder="Enter destination name"
+                        hide-details
+                        class="flex-1"
+                        @blur="emitUpdate"
+                    />
+                    <v-btn
+                        size="default"
+                        variant="tonal"
+                        prepend-icon="mdi-crosshairs-gps"
+                        @click="$emit('geocode-request', index, element.name || '')"
+                    >
+                      Lookup
+                    </v-btn>
+                  </div>
+                  <div v-if="element.address" class="text-caption text-grey-darken-1 mt-2">
+                    <v-icon size="14" icon="mdi-map-marker" />
+                    {{ element.address }}
+                  </div>
+                </div>
+
+                <v-divider />
+
                 <!-- Dates & nights -->
                 <div class="d-flex flex-column flex-sm-row gap-4 align-start">
                   <v-text-field
@@ -129,6 +153,7 @@
                       v-model.number="element.nights"
                       label="Nights"
                       type="number"
+                      density="comfortable"
                       min="1"
                       class="flex-1"
                       @change="syncEndFromNights(element)"
@@ -145,6 +170,7 @@
                         v-model="element.transport.mode"
                         :items="transportModes"
                         label="Mode"
+                        density="comfortable"
                         class="flex-1"
                         :item-title="m => prettyMode(m)"
                         :item-value="m => m"
@@ -174,12 +200,14 @@
                     <v-text-field
                         v-model="element.transport.duration"
                         label="Duration (e.g., 2h 30m)"
+                        density="comfortable"
                         class="flex-1"
                         @blur="emitUpdate"
                     />
                     <v-text-field
                         v-model="element.transport.distance"
                         label="Distance (e.g., 231 km)"
+                        density="comfortable"
                         class="flex-1"
                         @blur="emitUpdate"
                     />
@@ -193,7 +221,7 @@
                   <div class="text-subtitle-2 mb-2">Accommodation</div>
 
                   <!-- Show selected accommodation -->
-                  <v-card v-if="element.accommodation" variant="outlined" class="acc-card">
+                  <v-card v-if="element.accommodation"  class="acc-card">
                     <div class="d-flex flex-column flex-sm-row">
                       <v-img
                           :src="element.accommodation.image || placeholderImg"
@@ -307,12 +335,11 @@
     <v-divider class="my-2" />
 
     <!-- Add new destination -->
-    <div class="px-4 pb-4 d-flex align-center">
+    <div class="px-4 pb-4 d-flex align-start">
       <v-text-field
           v-model="newName"
           placeholder="Add new destination…"
           density="comfortable"
-          variant="outlined"
           class="flex-1 mr-2"
           @keyup.enter="addDestination"
       />
@@ -349,6 +376,24 @@
       </v-card-actions>
     </v-card>
   </v-dialog>
+
+  <!-- Delete confirmation dialog -->
+  <v-dialog v-model="deleteDialog.open" max-width="400">
+    <v-card>
+      <v-card-title class="text-h6 bg-primary">
+        <v-icon class="mr-2">mdi-delete</v-icon>
+        Confirm Deletion
+      </v-card-title>
+      <v-card-text>
+        Are you sure you want to delete this destination? This action cannot be undone.
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer />
+        <v-btn variant="text" @click="deleteDialog.open = false">Cancel</v-btn>
+        <v-btn variant="flat" color="error" @click="confirmDelete">Delete</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
 </template>
 
 <script setup lang="ts">
@@ -381,7 +426,7 @@ const newName = ref('')
 const placeholderImg =
     'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?q=80&w=1200&auto=format&fit=crop'
 
-const transportModes = ['walk', 'car', 'train', 'plane', 'bus', 'boat']
+const transportModes = ['walk', 'bicycle', 'car', 'train', 'plane', 'bus', 'boat']
 
 function emitUpdate() {
   // force a new array reference to notify parent
@@ -458,6 +503,7 @@ function transportIcon(mode?: string | null) {
         plane: 'mdi-airplane',
         bus: 'mdi-bus',
         boat: 'mdi-ferry',
+        bicycle: 'mdi-bike',
       }[mode as string] || 'mdi-dots-horizontal'
   )
 }
@@ -503,6 +549,23 @@ function saveAccommodation() {
 function removeAccommodation(destination: Destination) {
   destination.accommodation = null
   emitUpdate()
+}
+
+/** Delete confirmation dialog state */
+const deleteDialog = ref<{ open: boolean; model: Destination | null }>({ open: false, model: null })
+
+function openDeleteDialog(destination: Destination) {
+  deleteDialog.value = { open: true, model: destination }
+}
+function confirmDelete() {
+  if (deleteDialog.value.model) {
+    const index = itemsModel.value.findIndex(item => item.id === deleteDialog.value.model?.id)
+    if (index !== -1) {
+      itemsModel.value.splice(index, 1)
+      emitUpdate()
+    }
+  }
+  deleteDialog.value.open = false
 }
 </script>
 

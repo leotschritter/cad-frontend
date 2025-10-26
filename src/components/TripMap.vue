@@ -1,8 +1,8 @@
 <template>
-  <div class="map-wrapper" :class="{ expanded: isExpanded }">
+  <div class="map-wrapper" :class="{ expanded: isExpanded, overlay: overlayMode }">
     <!-- Toolbar with maximize/minimize button -->
     <div class="map-toolbar">
-      <v-btn class="map-btn" @click="toggleExpand" variant="flat" :prepend-icon="isExpanded ? 'mdi-window-minimize' : 'mdi-window-maximize'">
+      <v-btn class="map-btn" @click="toggleExpand" variant="flat" :prepend-icon="isExpanded ? 'mdi-arrow-collapse' : 'mdi-arrow-expand'">
         {{ isExpanded ? 'Minimize' : 'Maximize' }}
       </v-btn>
     </div>
@@ -36,7 +36,10 @@ export default defineComponent({
   props: {
     destinations: {
       type: Array as () => Destination[],
-      required: true,
+    },
+    expanded: {
+      type: Boolean,
+      default: true
     },
   },
   data() {
@@ -44,8 +47,9 @@ export default defineComponent({
       map: null as L.Map | null,
       markers: [] as L.Marker[],
       polyline: null as L.Polyline | null,
-      isExpanded: false,
+      isExpanded: this.expanded,
       iconCache: {} as Record<number, L.Icon>,
+      overlayMode: false,
     }
   },
   computed: {
@@ -56,7 +60,10 @@ export default defineComponent({
     },
   },
   mounted() {
-    this.initMap()
+    // Delay map initialization slightly to ensure DOM is ready
+    this.$nextTick(() => {
+      this.initMap()
+    })
     window.addEventListener('resize', this.onResize, { passive: true })
   },
   beforeUnmount() {
@@ -76,6 +83,16 @@ export default defineComponent({
         }
       },
       deep: true,
+    },
+    expanded: {
+      handler(val: boolean) {
+        // keep local state in sync with parent (when parent toggles overlay)
+        this.isExpanded = val
+        this.$nextTick(() => this.map?.invalidateSize())
+        this.$emit('update:expanded', this.isExpanded) // v-model:expanded
+        this.$emit('expanded', this.isExpanded)        // your existing event
+        this.$nextTick(() => this.map?.invalidateSize())
+      }
     },
   },
   methods: {
@@ -167,6 +184,8 @@ export default defineComponent({
     },
     toggleExpand() {
       this.isExpanded = !this.isExpanded
+      this.$emit('update:expanded', this.isExpanded)
+      this.$emit('expanded', this.isExpanded)
       this.$nextTick(() => {
         this.map?.invalidateSize()
       })
@@ -220,31 +239,16 @@ export default defineComponent({
 .map-wrapper {
   position: relative;
   width: 100%;
-  height: 250px; /* small initial height */
+  height: 400px;
   border-radius: 12px;
   overflow: hidden;
-  transition: height 0.3s ease;
-}
-.map-el {
-  width: 30vw;      /* small default */
-  height: 250px;    /* match your wrapper small height */
   transition: all 0.3s ease;
 }
 
-.map-wrapper.expanded .map-el {
-  width: 100vw;     /* take full width when expanded */
-  height: 70vh;     /* expanded height */
-}
-/*
-!* expanded mode *!
-.map-wrapper.expanded {
-  height: 70vh; !* big map when expanded *!
-}
-
 .map-el {
-  width: 70vh;
-  height: 70vh;
-}*/
+  width: 35vw;
+  height: 400px;
+}
 
 .map-toolbar {
   position: absolute;
@@ -265,7 +269,7 @@ export default defineComponent({
 .marker-circle {
   width: 32px;
   height: 32px;
-  background: #1976d2; /* Vuetify primary */
+  background: #1976d2;
   color: #fff;
   font-size: 14px;
   font-weight: bold;
@@ -276,26 +280,4 @@ export default defineComponent({
   align-items: center;
   justify-content: center;
 }
-
 </style>
-<!--<style scoped>
-/* Map fills its parent. No fixed px here. */
-.map-host {
-  /*height: 100%;
-  width: 100%;*/
-  border-radius: 12px;
-  overflow: hidden;
-}
-.map-el {
-  height: 70vh;
-  width: 70vw;
-}
-.map-btn {
-  background: white;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  padding: 4px 8px;
-  cursor: pointer;
-  font-size: 12px;
-}
-</style>-->
