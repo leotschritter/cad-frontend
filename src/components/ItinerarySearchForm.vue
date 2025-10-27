@@ -4,6 +4,16 @@ import type { ItinerarySearchDto } from "@/api";
 
 export default defineComponent({
   name: 'ItinerarySearchForm',
+  props: {
+    compactMode: {
+      type: Boolean,
+      default: false
+    },
+    showActionButtons: {
+      type: Boolean,
+      default: true
+    }
+  },
   emits: ['search', 'clear'],
   data() {
     return {
@@ -35,8 +45,8 @@ export default defineComponent({
         title: '',
         destination: '',
         description: '',
-        startDateFrom: null,
-        startDateTo: null,
+        startDateFrom: undefined,
+        startDateTo: undefined,
       };
       this.$emit('clear');
     }
@@ -45,7 +55,13 @@ export default defineComponent({
 </script>
 
 <template>
-  <v-card flat class="search-panel">
+  <!-- Compact Mode: nur Buttons -->
+  <div v-if="compactMode" class="compact-buttons">
+    <!-- Keine Buttons im Compact Mode -->
+  </div>
+
+  <!-- Full Mode: komplettes Formular -->
+  <v-card v-else flat class="search-panel">
     <v-toolbar flat color="primary" dark>
       <v-icon class="ml-2 mr-2">mdi-compass-outline</v-icon>
       <v-toolbar-title>Discover Travel Itineraries</v-toolbar-title>
@@ -139,27 +155,7 @@ export default defineComponent({
         </v-col>
       </v-row>
 
-      <v-row class="mt-2">
-        <v-col cols="12" class="d-flex ga-2">
-          <v-btn
-              color="primary"
-              size="large"
-              prepend-icon="mdi-magnify"
-              @click="handleSearch"
-              :loading="loading"
-          >
-            Search
-          </v-btn>
-          <v-btn
-              variant="tonal"
-              size="large"
-              prepend-icon="mdi-refresh"
-              @click="handleClear"
-          >
-            Clear All
-          </v-btn>
-        </v-col>
-      </v-row>
+      <!-- Buttons entfernt -->
     </v-card-text>
   </v-card>
 </template>
@@ -171,5 +167,10 @@ export default defineComponent({
   z-index: 10;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
-</style>
 
+.compact-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+</style>
