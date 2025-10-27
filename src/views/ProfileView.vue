@@ -226,4 +226,8 @@ export default defineComponent({
   border: 3px solid #1976d2;
   box-shadow: 0 2px 8px rgba(25, 118, 210, 0.2);
 }
+
+.v-toolbar {
+  background: linear-gradient(135deg, #1976d2 0%, #009ffd 100%) !important;
+}
 </style>

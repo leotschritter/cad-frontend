@@ -294,6 +294,10 @@ export default defineComponent({
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
+.search-form-wrapper .v-toolbar {
+  background: linear-gradient(135deg, #1976d2 0%, #009ffd 100%) !important;
+}
+
 .search-toggle-bar {
   padding: 8px 16px;
   border-bottom: 1px solid #e0e0e0;
