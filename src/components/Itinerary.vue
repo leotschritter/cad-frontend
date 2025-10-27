@@ -5,11 +5,13 @@ import type { ItineraryDto } from "@/api";
 import { useItineraryStore } from '@/stores/itinerary.ts'
 import { useAuthStore} from '@/stores/auth.ts'
 import ItineraryDetails from '@/components/ItineraryDetails.vue'
-import TripView from '@/components/TripView.vue'
+import TripView, { type Locations } from '@/components/TripView.vue'
+import TripViewReadOnly from "@/components/TripViewReadOnly.vue";
 
 export default defineComponent({
   name: 'Itinerary',
   components: {
+    TripViewReadOnly,
     ItineraryDetails,
     TripView
   },
@@ -20,6 +22,7 @@ export default defineComponent({
       isCreate: ref(false),
       isDetails: ref(false),
       isEditLocations: ref(false),
+      isShowLocations: ref(false),
       selected: ref<ItineraryDto | null>(null),
       editingItinerary: ref<ItineraryDto | null>(null),
       valid: ref(false),
@@ -38,6 +41,12 @@ export default defineComponent({
       ],
       itineraryStore: (null as any),
       authStore: (null as any),
+      locations: ref<Locations[]>([
+        { id: 1, name: 'Milano',  start: '2025-06-02', end: '2025-06-05', nights: 2, lat: 45.4642, lng: 9.19,    address: 'Milan, Italy',   transport: { mode: null,   duration: '2h 27m', distance: null }, accommodation: null },
+        { id: 2, name: 'Venice',  start: '2025-06-05', end: '2025-06-08', nights: 3, lat: 45.4408, lng: 12.3155, address: 'Venezia, Italy', transport: { mode: 'train', duration: '2h 13m', distance: null }, accommodation: { name: 'Canal View Boutique', rating: 4.5, pricePerNight: '€180' } },
+        { id: 3, name: 'Florence',start: '2025-06-08', end: '2025-06-12', nights: 3, lat: 43.7696, lng: 11.2558, address: 'Firenze, Italy',  transport: { mode: 'car',   duration: null,    distance: '231 km' }, accommodation: null },
+        { id: 4, name: 'Rome',    start: '2025-06-12', end: '2025-06-16', nights: 4, lat: 41.9028, lng: 12.4964, address: 'Roma, Italy',     transport: { mode: 'train', duration: null,    distance: null },    accommodation: null },
+      ])
     }
   },
   computed: {
@@ -52,7 +61,7 @@ export default defineComponent({
     this.itineraryStore.loadItineraries(this.authStore.user.email);
   },
   methods: {
-    open(action: 'create' | 'showDetails' | 'editLocations', item?: ItineraryDto) {
+    open(action: 'create' | 'showDetails' | 'editLocations' | 'showLocations', item?: ItineraryDto) {
       if (action === 'create') {
         this.isCreate = true;
       } else if (action === 'showDetails') {
@@ -61,9 +70,11 @@ export default defineComponent({
       } else if (action === 'editLocations') {
         this.editingItinerary = item || null;
         this.isEditLocations = true;
+      } else if (action === 'showLocations') {
+        this.isShowLocations = true;
       }
     },
-    close(action: 'submit' | 'cancel' | 'closeDetails' | 'submitLocations' | 'cancelLocations') {
+    close(action: 'submit' | 'cancel' | 'closeDetails' | 'submitLocations' | 'cancelLocations' | 'cancelReadonlyLocations') {
       if (action === 'submit') {
         this.itineraryStore.addNewItinerary(this.authStore.user.email, this.newItinerary as ItineraryDto);
         this.clearItinerary();
@@ -82,6 +93,8 @@ export default defineComponent({
       } else if (action === 'cancelLocations') {
         this.isEditLocations = false;
         this.editingItinerary = null;
+      } else if (action === 'cancelReadonlyLocations') {
+        this.isShowLocations = false;
       }
     },
     clearItinerary() {
@@ -155,6 +168,14 @@ export default defineComponent({
                   @click="open('editLocations', item)"
               >
                 Edit Locations
+              </v-btn>
+              <v-btn
+                  size="small"
+                  variant="text"
+                  prepend-icon="mdi-eye"
+                  @click="open('showLocations', item)"
+              >
+                Show Locations
               </v-btn>
             </template>
           </v-data-table>
@@ -238,6 +259,28 @@ export default defineComponent({
               <v-spacer/>
               <v-btn variant="text" size="large" @click="close('cancelLocations')">Cancel</v-btn>
               <v-btn color="primary" variant="flat" size="large" @click="close('submitLocations')">Save Changes</v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
+        <!-- Edit Locations dialog -->
+        <v-dialog v-model="isShowLocations" max-width="90vw" persistent>
+          <v-card style="max-height: 90vh;">
+            <v-card-title class="text-h6 bg-primary d-flex align-center">
+              <v-icon class="mr-2">mdi-map-marker-path</v-icon>
+              Show Locations - {{ editingItinerary?.title || '' }}
+              <v-chip v-if="editingItinerary?.destination" size="small" class="ml-3" variant="tonal">
+                {{ editingItinerary.destination }}
+              </v-chip>
+            </v-card-title>
+            <v-card-text class="pa-4" style="height: calc(90vh - 140px); overflow-y: auto;">
+              <TripViewReadOnly
+                  :locations="locations"
+                  @cancel="close('cancelLocations')"
+              />
+            </v-card-text>
+            <v-card-actions class="pa-4">
+              <v-spacer/>
+              <v-btn variant="text" size="large" @click="close('cancelReadonlyLocations')">Cancel</v-btn>
             </v-card-actions>
           </v-card>
         </v-dialog>
