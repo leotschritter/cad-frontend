@@ -72,7 +72,7 @@ export default defineComponent({
     this.map = null
   },
   watch: {
-    destinations: {
+    locations: {
       handler() {
         // re-render markers and route on any order/coord change
         if (!this.map) {
