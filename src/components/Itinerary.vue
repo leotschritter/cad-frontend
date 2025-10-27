@@ -37,6 +37,7 @@ export default defineComponent({
         {title: 'Title', key: 'title'},
         {title: 'Destination', key: 'destination'},
         {title: 'Start date of the trip', key: 'startDate'},
+        {title: 'Likes', key: 'likes', align: 'center' as const},
         {title: 'Actions', key: 'actions', sortable: false, align: 'end' as const},
       ],
       itineraryStore: (null as any),
@@ -151,6 +152,15 @@ export default defineComponent({
           >
             <template #item.startDate="{ item }">
               {{ fmtDate(item.startDate) }}
+            </template>
+            <template #item.likes="{ item }">
+              <v-chip
+                size="small"
+                :color="(item.likes ?? 0) > 0 ? 'pink' : 'grey-lighten-2'"
+                prepend-icon="mdi-heart"
+              >
+                {{ item.likes || 0 }}
+              </v-chip>
             </template>
             <template #item.actions="{ item }">
               <v-btn

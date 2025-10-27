@@ -54,7 +54,13 @@ export default defineComponent({
             prepend-avatar="https://randomuser.me/api/portraits/lego/1.jpg"
             :subtitle="getEmail"
             :title="getName"
-        ></v-list-item>
+            class="user-profile-item"
+            @click="$router.push('/profile')"
+        >
+          <template v-slot:append>
+            <v-icon class="edit-icon">mdi-pencil</v-icon>
+          </template>
+        </v-list-item>
       </v-list>
 
       <v-divider />
@@ -128,5 +134,23 @@ export default defineComponent({
   font-size: 0.95rem;
   color: #666;
   font-style: italic;
+}
+
+.user-profile-item {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.user-profile-item:hover {
+  background-color: rgba(25, 118, 210, 0.08);
+}
+
+.user-profile-item .edit-icon {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.user-profile-item:hover .edit-icon {
+  opacity: 1;
 }
 </style>
