@@ -43,6 +43,8 @@ export type Locations = {
   lat?: number | null
   lng?: number | null
   address?: string | null
+  shortDescription?: string | null
+  images?: string[]
   transport: { mode: string | null; duration: string | null; distance: string | null }
   accommodation: null | {
     name: string

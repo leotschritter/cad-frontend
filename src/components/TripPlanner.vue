@@ -107,7 +107,6 @@
                   <div class="d-flex align-center" style="gap:.75rem;">
                     <v-text-field
                         v-model="element.name"
-                        
                         density="comfortable"
                         placeholder="Enter destination name"
                         hide-details
@@ -126,6 +125,102 @@
                   <div v-if="element.address" class="text-caption text-grey-darken-1 mt-2">
                     <v-icon size="14" icon="mdi-map-marker" />
                     {{ element.address }}
+                  </div>
+                </div>
+
+                <v-divider />
+
+                <!-- Short Description -->
+                <div>
+                  <div class="text-subtitle-2 mb-2">Short Description</div>
+                  <v-textarea
+                      v-model="element.shortDescription"
+                      density="comfortable"
+                      placeholder="Add a brief description of this location..."
+                      rows="2"
+                      auto-grow
+                      hide-details
+                      @blur="emitUpdate"
+                  />
+                </div>
+
+                <v-divider />
+
+                <!-- Images Section -->
+                <div>
+                  <div class="text-subtitle-2 mb-2">Images</div>
+
+                  <!-- Image Gallery -->
+                  <div v-if="element.images && element.images.length > 0" class="image-gallery mb-3">
+                    <div class="d-flex flex-wrap gap-2">
+                      <div v-for="(imageUrl, imgIndex) in element.images" :key="imgIndex" class="image-card">
+                        <v-img
+                            :src="imageUrl"
+                            cover
+                            height="120"
+                            width="120"
+                            class="rounded"
+                        >
+                          <template #placeholder>
+                            <div class="d-flex align-center justify-center fill-height">
+                              <v-progress-circular indeterminate size="24" />
+                            </div>
+                          </template>
+                        </v-img>
+                        <v-btn
+                            icon
+                            size="x-small"
+                            class="image-delete-btn"
+                            color="error"
+                            @click="removeImage(element, imgIndex)"
+                        >
+                          <v-icon size="16">mdi-close</v-icon>
+                        </v-btn>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Upload Image Input -->
+                  <div class="d-flex align-center" style="gap:.75rem;">
+                    <v-file-input
+                        :ref="el => fileInputRefs[element.id] = el"
+                        v-model="selectedFiles[element.id]"
+                        density="comfortable"
+                        placeholder="Choose image files..."
+                        prepend-inner-icon="mdi-camera"
+                        prepend-icon=""
+                        accept="image/*"
+                        multiple
+                        hide-details
+                        class="flex-1"
+                        :loading="uploadingImages[element.id]"
+                        :disabled="uploadingImages[element.id]"
+                        @update:model-value="onFileSelected(element)"
+                    >
+                      <template #selection="{ fileNames }">
+                        <template v-if="fileNames.length === 1">
+                          {{ fileNames[0] }}
+                        </template>
+                        <template v-else>
+                          {{ fileNames.length }} files selected
+                        </template>
+                      </template>
+                    </v-file-input>
+                    <v-btn
+                        size="default"
+                        variant="tonal"
+                        prepend-icon="mdi-upload"
+                        @click="uploadImages(element)"
+                        :disabled="!selectedFiles[element.id] || selectedFiles[element.id].length === 0 || uploadingImages[element.id]"
+                        :loading="uploadingImages[element.id]"
+                    >
+                      Upload
+                    </v-btn>
+                  </div>
+
+                  <div class="text-caption text-grey-darken-1 mt-2">
+                    <v-icon size="14" icon="mdi-information-outline" />
+                    Upload images (max 5MB each, JPG, PNG, GIF supported)
                   </div>
                 </div>
 
@@ -425,6 +520,14 @@ const totalNights = computed(() =>
 /** Local UI state */
 const newName = ref('')
 
+const newImageUrl = ref<{ [key: number]: string }>({})
+
+const selectedFiles = ref<{ [key: number]: File[] }>({})
+
+const uploadingImages = ref<{ [key: number]: boolean }>({})
+
+const fileInputRefs = ref<{ [key: number]: any }>({})
+
 /** Shared helpers */
 const placeholderImg =
     'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?q=80&w=1200&auto=format&fit=crop'
@@ -570,6 +673,73 @@ function confirmDelete() {
   }
   deleteDialog.value.open = false
 }
+
+/** Image URL handling */
+function addImage(destination: Locations) {
+  const url = newImageUrl.value[destination.id]?.trim()
+  if (!url) return
+  if (!destination.images) destination.images = []
+  destination.images.push(url)
+  newImageUrl.value[destination.id] = ''
+  emitUpdate()
+}
+function removeImage(destination: Locations, index: number) {
+  if (!destination.images) return
+  destination.images.splice(index, 1)
+  emitUpdate()
+}
+
+/** File upload handling */
+function onFileSelected(destination: Locations) {
+  // Just update the file selection, don't preview yet
+  // The actual upload happens when user clicks Upload button
+}
+
+async function uploadImages(locations: Locations) {
+  const files = selectedFiles.value[locations.id] || []
+  if (files.length === 0) return
+
+  uploadingImages.value[locations.id] = true
+
+  /*try {
+    // Validate file types and sizes
+    for (const file of files) {
+      if (!file.type.startsWith('image/')) {
+        alert(`${file.name} is not an image file`)
+        uploadingImages.value[locations.id] = false
+        return
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        alert(`${file.name} is larger than 5MB`)
+        uploadingImages.value[locations.id] = false
+        return
+      }
+    }
+
+    // Upload all files to Google Cloud Storage
+    const uploadedUrls = await storageService.uploadMultipleImages(
+      files,
+      `locations/${locations.id}`
+    )
+
+    // Add the uploaded URLs to the locations
+    if (!locations.images) locations.images = []
+    locations.images.push(...uploadedUrls)
+
+    // Clear the selected files
+    selectedFiles.value[locations.id] = []
+
+    emitUpdate()
+
+    // Show success message
+    console.log(`Successfully uploaded ${uploadedUrls.length} image(s)`)
+  } catch (error: any) {
+    console.error('Error uploading images:', error)
+    alert(`Upload failed: ${error.message || 'Unknown error'}`)
+  } finally {
+    uploadingImages.value[locations.id] = false
+  }*/
+}
 </script>
 
 <style scoped>
@@ -589,4 +759,25 @@ function confirmDelete() {
 .acc-card { overflow: hidden; }
 .acc-thumb { min-width: 220px; }
 .acc-empty { border: 1px dashed rgba(0,0,0,0.2); }
+
+.image-gallery {
+  max-width: calc(100% + 1rem);
+  margin: 0 -0.5rem;
+}
+.image-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 0.5rem;
+  flex: 0 0 calc(25% - 0.5rem);
+  max-width: calc(25% - 0.5rem);
+}
+.image-card img {
+  object-fit: cover;
+  object-position: center;
+}
+.image-delete-btn {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+}
 </style>
