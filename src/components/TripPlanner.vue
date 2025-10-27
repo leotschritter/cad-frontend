@@ -45,17 +45,16 @@
 
                 <div class="flex-1">
                   <!-- Display name when collapsed -->
-                  <div class="text-h6 font-weight-light">
+                  <div class="text-h6 font-weight-medium">
                     {{ element.name || 'New Destination' }}
                   </div>
                   <div class="text-caption text-grey-darken-1 mt-1">
                     {{ formatDate(element.start) }} – {{ formatDate(element.end) }}
-                    <v-chip size="x-small" class="ml-2" variant="text">{{ element.nights }} night{{ element.nights !== 1 ? 's' : '' }}</v-chip>
                   </div>
                 </div>
 
                 <!-- Nights +/- buttons -->
-                <div class="d-none d-md-flex align-center mr-4">
+                <div class="d-flex align-center mr-4">
                   <v-btn
                       icon
                       size="small"
@@ -65,7 +64,7 @@
                   >
                     <v-icon size="20">mdi-minus</v-icon>
                   </v-btn>
-                  <div class="px-2 text-body-2 font-weight-medium" style="min-width: 2rem; text-align: center;">
+                  <div class="px-3 text-body-1 font-weight-bold" style="min-width: 3rem; text-align: center;">
                     {{ element.nights }}
                   </div>
                   <v-btn
@@ -78,10 +77,11 @@
                   </v-btn>
                 </div>
 
-                <div class="d-none d-md-flex align-center justify-center mr-2">
-                  <v-chip v-if="element.transport?.mode" size="small" class="mr-2" variant="tonal">
-                    <v-icon start :icon="transportIcon(element.transport.mode)" />
-                    {{ prettyMode(element.transport.mode) }}
+                <!-- Transport icon and duration -->
+                <div class="d-none d-md-flex align-center justify-center mr-2" style="min-width: 100px;">
+                  <v-chip v-if="element.transport?.mode || element.transport?.duration" size="small" class="mr-2" variant="tonal">
+                    <v-icon v-if="element.transport?.mode" :start="!!element.transport?.duration" :icon="transportIcon(element.transport.mode)" size="18" />
+                    {{ element.transport?.duration }}
                   </v-chip>
                 </div>
 
