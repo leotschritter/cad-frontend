@@ -1,15 +1,19 @@
 <script lang="ts">
 import { defineComponent } from "vue";
-import type { ItinerarySearchResponseDto } from "@/api";
+import type { ItinerarySearchResponseDto, CommentDto } from "@/api";
+import { getApi } from "@/services/api";
+import { useAuthStore } from "@/stores/auth";
 
 interface Comment {
-  id: number;
+  id: string;
   userName: string;
+  userEmail: string;
   text: string;
   timestamp: Date;
 }
 
 interface ItineraryWithInteractions extends ItinerarySearchResponseDto {
+  itineraryId?: number;
   imageUrl?: string;
   likes?: number;
   isLiked?: boolean;
@@ -29,6 +33,9 @@ export default defineComponent({
     return {
       feedItems: [] as ItineraryWithInteractions[],
       newCommentText: {} as Record<number, string>,
+      likeApi: getApi('LikeManagementApi'),
+      commentApi: getApi('CommentManagementApi'),
+      authStore: useAuthStore(),
       // Mock Bilder für Destinationen
       mockImages: [
         'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800',
@@ -43,73 +50,185 @@ export default defineComponent({
   watch: {
     itineraries: {
       immediate: true,
-      handler(newItineraries: ItinerarySearchResponseDto[]) {
+      async handler(newItineraries: ItinerarySearchResponseDto[]) {
         this.feedItems = newItineraries.map((item, index) => ({
           ...item,
+          itineraryId: item.id, // Mappe id zu itineraryId
           imageUrl: this.mockImages[index % this.mockImages.length],
-          likes: Math.floor(Math.random() * 100) + 5,
+          likes: 0,
           isLiked: false,
-          comments: this.generateMockComments(),
+          comments: [],
           showAllComments: false
         }));
+
+        // Lade die echten Like-Daten und Kommentare für alle Itineraries
+        await this.loadLikesForAllItems();
+        await this.loadCommentsForAllItems();
       }
     }
   },
   methods: {
-    generateMockComments(): Comment[] {
-      const comments: Comment[] = [];
-      const numComments = Math.floor(Math.random() * 5);
-      const users = ['Anna Schmidt', 'Max Mueller', 'Lisa Weber', 'Tom Fischer', 'Sarah Klein'];
-      const texts = [
-        'Looks amazing! 😍',
-        'I want to go there too!',
-        'Great destination choice!',
-        'Beautiful place! ✨',
-        'Added to my bucket list!'
-      ];
+    async loadLikesForAllItems() {
+      if (!this.authStore.user?.email) return;
 
-      for (let i = 0; i < numComments; i++) {
-        comments.push({
-          id: Date.now() + i,
-          userName: users[i % users.length] || 'Anonymous',
-          text: texts[i % texts.length] || 'Nice!',
-          timestamp: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000)
+      try {
+        // Lade alle Likes des aktuellen Users
+        const userLikes = await this.likeApi.likeUserUserEmailGet({
+          userEmail: this.authStore.user.email
         });
-      }
 
-      return comments;
+        // Lade Like-Count für jede Itinerary
+        for (const item of this.feedItems) {
+          if (item.itineraryId) {
+            try {
+              const likeResponse = await this.likeApi.likeItineraryItineraryIdGet({
+                itineraryId: item.itineraryId
+              });
+              item.likes = likeResponse.likeCount || 0;
+
+              // Prüfe, ob der User diese Itinerary geliked hat
+              item.isLiked = userLikes.some((like: any) => like.itineraryId === item.itineraryId);
+            } catch (err) {
+              console.error(`Failed to load likes for itinerary ${item.itineraryId}:`, err);
+              item.likes = 0;
+              item.isLiked = false;
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load user likes:', err);
+      }
     },
 
-    toggleLike(item: ItineraryWithInteractions) {
-      if (item.isLiked) {
-        // Unlike
-        item.isLiked = false;
-        item.likes = Math.max(0, (item.likes || 0) - 1);
-      } else {
-        // Like
-        item.isLiked = true;
-        item.likes = (item.likes || 0) + 1;
+    async loadCommentsForAllItems() {
+      for (const item of this.feedItems) {
+        if (item.itineraryId) {
+          try {
+            const commentsFromApi = await this.commentApi.commentItineraryItineraryIdGet({
+              itineraryId: item.itineraryId
+            });
+
+            // Konvertiere API-Kommentare zu lokalem Format und sortiere nach Zeitpunkt (älteste zuerst)
+            item.comments = commentsFromApi
+              .map((comment: CommentDto) => ({
+                id: comment.id || '',
+                userName: comment.userEmail?.split('@')[0] || 'Anonymous',
+                userEmail: comment.userEmail || '',
+                text: comment.comment || '',
+                timestamp: comment.createdAt ? new Date(comment.createdAt) : new Date()
+              }))
+              .sort((a: Comment, b: Comment) => a.timestamp.getTime() - b.timestamp.getTime());
+
+          } catch (err) {
+            console.error(`Failed to load comments for itinerary ${item.itineraryId}:`, err);
+            item.comments = [];
+          }
+        }
       }
-      // TODO: Backend API call
     },
 
-    addComment(item: ItineraryWithInteractions, index: number) {
+    generateMockComments(): Comment[] {
+      // Diese Methode wird nicht mehr verwendet, da wir echte Kommentare vom Backend laden
+      return [];
+    },
+
+    async toggleLike(item: ItineraryWithInteractions) {
+      if (!this.authStore.user?.email) {
+        console.error('User must be logged in to like');
+        return;
+      }
+
+      if (!item.itineraryId) {
+        console.error('Itinerary ID is missing');
+        return;
+      }
+
+      const previousLikeState = item.isLiked;
+      const previousLikeCount = item.likes || 0;
+
+      try {
+        if (item.isLiked) {
+          // Unlike
+          item.isLiked = false;
+          item.likes = Math.max(0, (item.likes || 0) - 1);
+
+          await this.likeApi.likeItineraryItineraryIdDelete({
+            itineraryId: item.itineraryId,
+            userEmail: this.authStore.user.email
+          });
+
+          console.log(`Unliked itinerary ${item.itineraryId}`);
+        } else {
+          // Like
+          item.isLiked = true;
+          item.likes = (item.likes || 0) + 1;
+
+          await this.likeApi.likeItineraryItineraryIdPost({
+            itineraryId: item.itineraryId,
+            userEmail: this.authStore.user.email
+          });
+
+          console.log(`Liked itinerary ${item.itineraryId}`);
+        }
+      } catch (err: any) {
+        // Bei Fehler: Vorherigen Zustand wiederherstellen
+        console.error('Failed to toggle like:', err);
+        item.isLiked = previousLikeState;
+        item.likes = previousLikeCount;
+
+        // Optional: Zeige Fehlermeldung an
+        if (err?.response?.status === 409) {
+          console.warn('Like already exists or was already removed');
+        }
+      }
+    },
+
+    async addComment(item: ItineraryWithInteractions, index: number) {
       const commentText = this.newCommentText[index];
-      if (commentText && commentText.trim()) {
+      if (!commentText || !commentText.trim()) {
+        return;
+      }
+
+      if (!this.authStore.user?.email) {
+        console.error('User must be logged in to comment');
+        return;
+      }
+
+      if (!item.itineraryId) {
+        console.error('Itinerary ID is missing');
+        return;
+      }
+
+      try {
+        // Sende Kommentar an Backend
+        const newComment = await this.commentApi.commentItineraryItineraryIdPost({
+          itineraryId: item.itineraryId,
+          commentRequest: {
+            userEmail: this.authStore.user.email,
+            comment: commentText.trim()
+          }
+        });
+
+        // Füge den neuen Kommentar zur Liste hinzu
         const comment: Comment = {
-          id: Date.now(),
-          userName: 'You',
-          text: commentText.trim(),
-          timestamp: new Date()
+          id: newComment.id || '',
+          userName: this.authStore.user.name || this.authStore.user.email?.split('@')[0] || 'Anonymous',
+          userEmail: newComment.userEmail || '',
+          text: newComment.comment || '',
+          timestamp: newComment.createdAt ? new Date(newComment.createdAt) : new Date()
         };
 
         if (!item.comments) {
           item.comments = [];
         }
-        item.comments.unshift(comment);
+
+        // Füge neuen Kommentar am Ende hinzu (da wir älteste zuerst sortieren)
+        item.comments.push(comment);
         this.newCommentText[index] = '';
 
-        // TODO: Backend API call
+        console.log(`Comment added to itinerary ${item.itineraryId}`);
+      } catch (err) {
+        console.error('Failed to add comment:', err);
       }
     },
 
