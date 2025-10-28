@@ -17,15 +17,15 @@ import * as runtime from '../runtime';
 import type {
   LocationDto,
   LocationImageUploadResponseDto,
-  MessageResponseDto,
+  MessageResponseDto2,
 } from '../models/index';
 import {
     LocationDtoFromJSON,
     LocationDtoToJSON,
     LocationImageUploadResponseDtoFromJSON,
     LocationImageUploadResponseDtoToJSON,
-    MessageResponseDtoFromJSON,
-    MessageResponseDtoToJSON,
+    MessageResponseDto2FromJSON,
+    MessageResponseDto2ToJSON,
 } from '../models/index';
 
 export interface LocationItineraryItineraryIdGetRequest {
@@ -185,7 +185,7 @@ export class LocationManagementApi extends runtime.BaseAPI {
      * Deletes a location from an itinerary.
      * Delete location
      */
-    async locationLocationIdDeleteRaw(requestParameters: LocationLocationIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MessageResponseDto>> {
+    async locationLocationIdDeleteRaw(requestParameters: LocationLocationIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MessageResponseDto2>> {
         if (requestParameters['locationId'] == null) {
             throw new runtime.RequiredError(
                 'locationId',
@@ -208,14 +208,14 @@ export class LocationManagementApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => MessageResponseDtoFromJSON(jsonValue));
+        return new runtime.JSONApiResponse(response, (jsonValue) => MessageResponseDto2FromJSON(jsonValue));
     }
 
     /**
      * Deletes a location from an itinerary.
      * Delete location
      */
-    async locationLocationIdDelete(requestParameters: LocationLocationIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MessageResponseDto> {
+    async locationLocationIdDelete(requestParameters: LocationLocationIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MessageResponseDto2> {
         const response = await this.locationLocationIdDeleteRaw(requestParameters, initOverrides);
         return await response.value();
     }
@@ -263,7 +263,7 @@ export class LocationManagementApi extends runtime.BaseAPI {
      * Deletes a specific image from a location by its URL.
      * Delete image from location
      */
-    async locationLocationIdImagesDeleteRaw(requestParameters: LocationLocationIdImagesDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MessageResponseDto>> {
+    async locationLocationIdImagesDeleteRaw(requestParameters: LocationLocationIdImagesDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MessageResponseDto2>> {
         if (requestParameters['locationId'] == null) {
             throw new runtime.RequiredError(
                 'locationId',
@@ -297,14 +297,14 @@ export class LocationManagementApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => MessageResponseDtoFromJSON(jsonValue));
+        return new runtime.JSONApiResponse(response, (jsonValue) => MessageResponseDto2FromJSON(jsonValue));
     }
 
     /**
      * Deletes a specific image from a location by its URL.
      * Delete image from location
      */
-    async locationLocationIdImagesDelete(requestParameters: LocationLocationIdImagesDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MessageResponseDto> {
+    async locationLocationIdImagesDelete(requestParameters: LocationLocationIdImagesDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MessageResponseDto2> {
         const response = await this.locationLocationIdImagesDeleteRaw(requestParameters, initOverrides);
         return await response.value();
     }

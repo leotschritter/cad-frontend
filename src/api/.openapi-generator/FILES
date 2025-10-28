@@ -16,6 +16,8 @@ models/LikeResponseDto.ts
 models/LocationDto.ts
 models/LocationImageUploadResponseDto.ts
 models/MessageResponseDto.ts
+models/MessageResponseDto1.ts
+models/MessageResponseDto2.ts
 models/ProfileImageResponseDto.ts
 models/ProfileImageUploadResponseDto.ts
 models/UserDto.ts
