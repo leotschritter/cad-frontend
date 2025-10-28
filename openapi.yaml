@@ -1,16 +1,5 @@
 ---
 openapi: 3.1.0
-tags:
-- name: Comment Management
-  description: Operations for managing comments on itineraries
-- name: Itinerary Management
-  description: Operations for managing travel itineraries
-- name: Like Management
-  description: Operations for managing likes and comments on itineraries
-- name: Location Management
-  description: Operations for managing locations within itineraries
-- name: User Management
-  description: Operations for managing user accounts and profiles
 components:
   schemas:
     CommentDto:
@@ -134,6 +123,42 @@ components:
           type: array
           items:
             type: string
+    LocationImageUploadResponseDto:
+      type: object
+      description: Response object for location image upload operations
+      properties:
+        message:
+          type: string
+          description: Success message
+        imageUrls:
+          type: array
+          items:
+            type: string
+          description: List of uploaded image URLs
+    MessageResponseDto:
+      type: object
+      description: Response object for successful operations
+      properties:
+        message:
+          type: string
+          description: Success or info message
+    ProfileImageResponseDto:
+      type: object
+      description: Response object containing the profile image URL
+      properties:
+        imageUrl:
+          type: string
+          description: URL of the profile image
+    ProfileImageUploadResponseDto:
+      type: object
+      description: Response object for profile image upload operations
+      properties:
+        message:
+          type: string
+          description: Success message
+        imageUrl:
+          type: string
+          description: URL of the uploaded image
     UserDto:
       type: object
       properties:
@@ -146,6 +171,17 @@ components:
           type: string
         profileImageUrl:
           type: string
+tags:
+- name: Comment Management
+  description: Operations for managing comments on itineraries
+- name: Itinerary Management
+  description: Operations for managing travel itineraries
+- name: Like Management
+  description: Operations for managing likes and comments on itineraries
+- name: Location Management
+  description: Operations for managing locations within itineraries
+- name: User Management
+  description: Operations for managing user accounts and profiles
 paths:
   /comment/itinerary/{itineraryId}:
     get:
@@ -881,8 +917,13 @@ paths:
           description: Location deleted successfully
           content:
             application/json:
-              example:
-                message: Location deleted successfully
+              examples:
+                Delete Success:
+                  summary: Example of successful deletion
+                  value:
+                    message: Location deleted successfully
+              schema:
+                $ref: "#/components/schemas/MessageResponseDto"
         "404":
           description: Location not found
           content:
@@ -924,12 +965,15 @@ paths:
             application/json:
               examples:
                 Upload response:
+                  summary: Example of successful image upload
                   value:
                     message: 3 images uploaded successfully
                     imageUrls:
                     - https://storage.googleapis.com/bucket/location-images/1/image1.jpg
                     - https://storage.googleapis.com/bucket/location-images/1/image2.jpg
                     - https://storage.googleapis.com/bucket/location-images/1/image3.jpg
+              schema:
+                $ref: "#/components/schemas/LocationImageUploadResponseDto"
         "400":
           description: Bad request - No images provided
           content:
@@ -968,8 +1012,13 @@ paths:
           description: Image deleted successfully
           content:
             application/json:
-              example:
-                message: Image deleted successfully
+              examples:
+                Delete Success:
+                  summary: Example of successful image deletion
+                  value:
+                    message: Image deleted successfully
+              schema:
+                $ref: "#/components/schemas/MessageResponseDto"
         "400":
           description: Bad request - Image URL is required
           content:
@@ -1113,9 +1162,14 @@ paths:
           description: Profile image uploaded successfully
           content:
             application/json:
-              example:
-                message: Profile image uploaded successfully
-                imageUrl: https://storage.googleapis.com/bucket/profile-image.jpg
+              examples:
+                Upload Success:
+                  summary: Example of successful upload response
+                  value:
+                    message: Profile image uploaded successfully
+                    imageUrl: https://storage.googleapis.com/bucket/profile-images/john.doe@example.com/1234567890_photo.jpg
+              schema:
+                $ref: "#/components/schemas/ProfileImageUploadResponseDto"
         "400":
           description: Bad request - Invalid file or email
           content:
@@ -1146,8 +1200,13 @@ paths:
           description: Profile image URL retrieved successfully
           content:
             application/json:
-              example:
-                imageUrl: https://storage.googleapis.com/bucket/profile-image.jpg
+              examples:
+                Image URL Response:
+                  summary: Example of profile image URL response
+                  value:
+                    imageUrl: https://storage.googleapis.com/bucket/profile-images/john.doe@example.com/1234567890_photo.jpg
+              schema:
+                $ref: "#/components/schemas/ProfileImageResponseDto"
         "404":
           description: User not found or no profile image
           content:
