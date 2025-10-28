@@ -28,6 +28,9 @@ export default defineComponent({
     getName(): string {
       return this.authStore?.user?.name ?? 'Log in to see name'
     },
+    getProfileImageUrl(): string {
+      return this.authStore?.user?.profileImageUrl ?? 'https://randomuser.me/api/portraits/lego/1.jpg'
+    },
     isLoggedIn(): boolean {
       return this.authStore?.user != null;
     }
@@ -51,7 +54,7 @@ export default defineComponent({
     >
       <v-list>
         <v-list-item
-            prepend-avatar="https://randomuser.me/api/portraits/lego/1.jpg"
+            :prepend-avatar="getProfileImageUrl"
             :subtitle="getEmail"
             :title="getName"
             class="user-profile-item"

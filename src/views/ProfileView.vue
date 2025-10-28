@@ -1,13 +1,14 @@
 <script lang="ts">
 import { defineComponent } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { useUserStore } from "@/stores/user.ts";
 
 export default defineComponent({
   name: 'ProfileView',
   data() {
     return {
       authStore: useAuthStore(),
-      profileImage: 'https://randomuser.me/api/portraits/lego/1.jpg',
+      userStore: useUserStore(),
       imageFile: null as File | null | undefined,
       imagePreview: null as string | null,
       loading: false,
@@ -21,10 +22,18 @@ export default defineComponent({
     },
     email(): string {
       return this.authStore.user?.email || ''
-    }
+    },
+    profileImageUrl(): string {
+      return this.authStore.user?.profileImageUrl || 'https://randomuser.me/api/portraits/lego/1.jpg'
+    },
+    currentProfileImage(): string {
+      // Use the preview if available (user selected a new image), otherwise use the profile image URL
+      return this.imagePreview || this.profileImageUrl
+    },
   },
   mounted() {
-    this.imagePreview = this.profileImage
+    // Initialize the preview with the current profile image
+    this.imagePreview = this.profileImageUrl
   },
   methods: {
     onFileChange(event: Event) {
@@ -54,17 +63,51 @@ export default defineComponent({
       this.errorMessage = ''
 
       try {
-        // TODO: Backend API call to update profile image
-        await new Promise(resolve => setTimeout(resolve, 1000))
-
-        if (this.imagePreview) {
-          this.profileImage = this.imagePreview
+        if (!this.imageFile) {
+          this.errorMessage = 'Please select an image first'
+          this.loading = false
+          return
         }
 
-        this.successMessage = 'Profile picture updated successfully!'
-        setTimeout(() => {
-          this.successMessage = ''
-        }, 3000)
+        if (!this.email) {
+          this.errorMessage = 'User email not found'
+          this.loading = false
+          return
+        }
+
+        // Call the API to upload the profile image
+        const updatedUser = await this.userStore.userUploadProfileImage({
+          email: this.email,
+          file: this.imageFile
+        })
+
+        if (updatedUser) {
+          // Update the auth store with the new profile image URL
+          if (this.authStore.user) {
+            this.authStore.user.profileImageUrl = updatedUser.profileImageUrl
+            // Persist to localStorage
+            this.authStore.login(this.authStore.user)
+          }
+
+          // Update preview to show the new uploaded image
+          if (updatedUser.profileImageUrl) {
+            this.imagePreview = updatedUser.profileImageUrl
+          }
+
+          // Clear the file input and reset the hidden file input element
+          this.imageFile = null
+          const fileInput = this.$refs.fileInput as HTMLInputElement
+          if (fileInput) {
+            fileInput.value = ''
+          }
+
+          this.successMessage = 'Profile picture updated successfully!'
+          setTimeout(() => {
+            this.successMessage = ''
+          }, 3000)
+        } else {
+          this.errorMessage = 'Failed to update profile picture. Please try again.'
+        }
       } catch (error) {
         console.error('Error updating profile:', error)
         this.errorMessage = 'Failed to update profile picture. Please try again.'
@@ -73,8 +116,13 @@ export default defineComponent({
       }
     },
     resetChanges() {
-      this.imagePreview = this.profileImage
+      this.imagePreview = this.profileImageUrl
       this.imageFile = null
+      // Also reset the file input
+      const fileInput = this.$refs.fileInput as HTMLInputElement
+      if (fileInput) {
+        fileInput.value = ''
+      }
     }
   }
 })
@@ -122,7 +170,7 @@ export default defineComponent({
                   class="profile-avatar mb-3"
                 >
                   <v-img
-                    :src="imagePreview || profileImage"
+                    :src="currentProfileImage"
                     alt="Profile Picture"
                     cover
                   >
@@ -185,7 +233,7 @@ export default defineComponent({
               </v-row>
 
               <!-- Action Buttons -->
-              <v-row class="mt-4" v-if="imageFile">
+              <v-row class="mt-4" v-if="profileImageUrl">
                 <v-col cols="12" class="d-flex gap-2">
                   <v-btn
                     color="primary"

@@ -15,9 +15,15 @@
 
 import * as runtime from '../runtime';
 import type {
+  ProfileImageResponseDto,
+  ProfileImageUploadResponseDto,
   UserDto,
 } from '../models/index';
 import {
+    ProfileImageResponseDtoFromJSON,
+    ProfileImageResponseDtoToJSON,
+    ProfileImageUploadResponseDtoFromJSON,
+    ProfileImageUploadResponseDtoToJSON,
     UserDtoFromJSON,
     UserDtoToJSON,
 } from '../models/index';
@@ -48,7 +54,7 @@ export class UserManagementApi extends runtime.BaseAPI {
      * Retrieves the profile image URL for a user.
      * Get profile image URL
      */
-    async userEmailProfileImageGetRaw(requestParameters: UserEmailProfileImageGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+    async userEmailProfileImageGetRaw(requestParameters: UserEmailProfileImageGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ProfileImageResponseDto>> {
         if (requestParameters['email'] == null) {
             throw new runtime.RequiredError(
                 'email',
@@ -71,22 +77,23 @@ export class UserManagementApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.VoidApiResponse(response);
+        return new runtime.JSONApiResponse(response, (jsonValue) => ProfileImageResponseDtoFromJSON(jsonValue));
     }
 
     /**
      * Retrieves the profile image URL for a user.
      * Get profile image URL
      */
-    async userEmailProfileImageGet(requestParameters: UserEmailProfileImageGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
-        await this.userEmailProfileImageGetRaw(requestParameters, initOverrides);
+    async userEmailProfileImageGet(requestParameters: UserEmailProfileImageGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ProfileImageResponseDto> {
+        const response = await this.userEmailProfileImageGetRaw(requestParameters, initOverrides);
+        return await response.value();
     }
 
     /**
      * Uploads a profile image for a user. The image will be stored in Google Cloud Storage.
      * Upload profile image
      */
-    async userEmailProfileImagePostRaw(requestParameters: UserEmailProfileImagePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+    async userEmailProfileImagePostRaw(requestParameters: UserEmailProfileImagePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ProfileImageUploadResponseDto>> {
         if (requestParameters['email'] == null) {
             throw new runtime.RequiredError(
                 'email',
@@ -130,15 +137,16 @@ export class UserManagementApi extends runtime.BaseAPI {
             body: formParams,
         }, initOverrides);
 
-        return new runtime.VoidApiResponse(response);
+        return new runtime.JSONApiResponse(response, (jsonValue) => ProfileImageUploadResponseDtoFromJSON(jsonValue));
     }
 
     /**
      * Uploads a profile image for a user. The image will be stored in Google Cloud Storage.
      * Upload profile image
      */
-    async userEmailProfileImagePost(requestParameters: UserEmailProfileImagePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
-        await this.userEmailProfileImagePostRaw(requestParameters, initOverrides);
+    async userEmailProfileImagePost(requestParameters: UserEmailProfileImagePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ProfileImageUploadResponseDto> {
+        const response = await this.userEmailProfileImagePostRaw(requestParameters, initOverrides);
+        return await response.value();
     }
 
     /**

@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { getApi } from "@/services/api.ts";
-import type { UserDto } from "@/api";
+import type { ProfileImageUploadResponseDto, UserDto } from "@/api";
 
 const userApi = getApi('UserManagementApi')
 
@@ -31,6 +31,48 @@ export const useUserStore = defineStore('user',{
         this.user = null
         const status = err?.response?.status
         if (status === 404) {
+          return null
+        } else {
+          throw err
+        }
+      }
+    },
+    async userUploadProfileImage(payload: { email: string, file: Blob}): Promise<UserDto | null> {
+      try {
+        const response = await userApi.userEmailProfileImagePost(payload);
+        if (this.user) {
+          this.user.profileImageUrl = response.imageUrl ?? undefined;
+          return this.user;
+        } else {
+          return null;
+        }
+      } catch (err: any) {
+        if (this.user) {
+          this.user.profileImageUrl = undefined;
+        }
+        const status = err?.response?.status
+        if (status === 404) {
+          return null
+        } else {
+          throw err
+        }
+      }
+    },
+    async userGetProfileImage(email: string): Promise<UserDto | null> {
+      try {
+        const response = await userApi.userEmailProfileImageGet({ email });
+        if (this.user) {
+          this.user.profileImageUrl = response.imageUrl ?? undefined;
+          return this.user;
+        } else {
+          return null;
+        }
+      } catch (err: any) {
+        if (this.user) {
+          this.user.profileImageUrl = undefined;
+        }
+        const status = err?.response?.status
+        if (status === 400) {
           return null
         } else {
           throw err

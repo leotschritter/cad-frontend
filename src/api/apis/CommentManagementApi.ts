@@ -17,12 +17,15 @@ import * as runtime from '../runtime';
 import type {
   CommentDto,
   CommentRequest,
+  MessageResponseDto,
 } from '../models/index';
 import {
     CommentDtoFromJSON,
     CommentDtoToJSON,
     CommentRequestFromJSON,
     CommentRequestToJSON,
+    MessageResponseDtoFromJSON,
+    MessageResponseDtoToJSON,
 } from '../models/index';
 
 export interface CommentCommentIdDeleteRequest {
@@ -52,7 +55,7 @@ export class CommentManagementApi extends runtime.BaseAPI {
      * Deletes a comment. Users can only delete their own comments.
      * Delete comment
      */
-    async commentCommentIdDeleteRaw(requestParameters: CommentCommentIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+    async commentCommentIdDeleteRaw(requestParameters: CommentCommentIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MessageResponseDto>> {
         if (requestParameters['commentId'] == null) {
             throw new runtime.RequiredError(
                 'commentId',
@@ -86,15 +89,16 @@ export class CommentManagementApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.VoidApiResponse(response);
+        return new runtime.JSONApiResponse(response, (jsonValue) => MessageResponseDtoFromJSON(jsonValue));
     }
 
     /**
      * Deletes a comment. Users can only delete their own comments.
      * Delete comment
      */
-    async commentCommentIdDelete(requestParameters: CommentCommentIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
-        await this.commentCommentIdDeleteRaw(requestParameters, initOverrides);
+    async commentCommentIdDelete(requestParameters: CommentCommentIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MessageResponseDto> {
+        const response = await this.commentCommentIdDeleteRaw(requestParameters, initOverrides);
+        return await response.value();
     }
 
     /**

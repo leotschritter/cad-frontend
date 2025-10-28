@@ -16,10 +16,16 @@
 import * as runtime from '../runtime';
 import type {
   LocationDto,
+  LocationImageUploadResponseDto,
+  MessageResponseDto2,
 } from '../models/index';
 import {
     LocationDtoFromJSON,
     LocationDtoToJSON,
+    LocationImageUploadResponseDtoFromJSON,
+    LocationImageUploadResponseDtoToJSON,
+    MessageResponseDto2FromJSON,
+    MessageResponseDto2ToJSON,
 } from '../models/index';
 
 export interface LocationItineraryItineraryIdGetRequest {
@@ -179,7 +185,7 @@ export class LocationManagementApi extends runtime.BaseAPI {
      * Deletes a location from an itinerary.
      * Delete location
      */
-    async locationLocationIdDeleteRaw(requestParameters: LocationLocationIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+    async locationLocationIdDeleteRaw(requestParameters: LocationLocationIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MessageResponseDto2>> {
         if (requestParameters['locationId'] == null) {
             throw new runtime.RequiredError(
                 'locationId',
@@ -202,15 +208,16 @@ export class LocationManagementApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.VoidApiResponse(response);
+        return new runtime.JSONApiResponse(response, (jsonValue) => MessageResponseDto2FromJSON(jsonValue));
     }
 
     /**
      * Deletes a location from an itinerary.
      * Delete location
      */
-    async locationLocationIdDelete(requestParameters: LocationLocationIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
-        await this.locationLocationIdDeleteRaw(requestParameters, initOverrides);
+    async locationLocationIdDelete(requestParameters: LocationLocationIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MessageResponseDto2> {
+        const response = await this.locationLocationIdDeleteRaw(requestParameters, initOverrides);
+        return await response.value();
     }
 
     /**
@@ -256,7 +263,7 @@ export class LocationManagementApi extends runtime.BaseAPI {
      * Deletes a specific image from a location by its URL.
      * Delete image from location
      */
-    async locationLocationIdImagesDeleteRaw(requestParameters: LocationLocationIdImagesDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+    async locationLocationIdImagesDeleteRaw(requestParameters: LocationLocationIdImagesDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MessageResponseDto2>> {
         if (requestParameters['locationId'] == null) {
             throw new runtime.RequiredError(
                 'locationId',
@@ -290,22 +297,23 @@ export class LocationManagementApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.VoidApiResponse(response);
+        return new runtime.JSONApiResponse(response, (jsonValue) => MessageResponseDto2FromJSON(jsonValue));
     }
 
     /**
      * Deletes a specific image from a location by its URL.
      * Delete image from location
      */
-    async locationLocationIdImagesDelete(requestParameters: LocationLocationIdImagesDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
-        await this.locationLocationIdImagesDeleteRaw(requestParameters, initOverrides);
+    async locationLocationIdImagesDelete(requestParameters: LocationLocationIdImagesDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MessageResponseDto2> {
+        const response = await this.locationLocationIdImagesDeleteRaw(requestParameters, initOverrides);
+        return await response.value();
     }
 
     /**
      * Uploads one or more images to a location. Images will be stored in Google Cloud Storage.
      * Upload images to location
      */
-    async locationLocationIdImagesPostRaw(requestParameters: LocationLocationIdImagesPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+    async locationLocationIdImagesPostRaw(requestParameters: LocationLocationIdImagesPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<LocationImageUploadResponseDto>> {
         if (requestParameters['locationId'] == null) {
             throw new runtime.RequiredError(
                 'locationId',
@@ -351,15 +359,16 @@ export class LocationManagementApi extends runtime.BaseAPI {
             body: formParams,
         }, initOverrides);
 
-        return new runtime.VoidApiResponse(response);
+        return new runtime.JSONApiResponse(response, (jsonValue) => LocationImageUploadResponseDtoFromJSON(jsonValue));
     }
 
     /**
      * Uploads one or more images to a location. Images will be stored in Google Cloud Storage.
      * Upload images to location
      */
-    async locationLocationIdImagesPost(requestParameters: LocationLocationIdImagesPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
-        await this.locationLocationIdImagesPostRaw(requestParameters, initOverrides);
+    async locationLocationIdImagesPost(requestParameters: LocationLocationIdImagesPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<LocationImageUploadResponseDto> {
+        const response = await this.locationLocationIdImagesPostRaw(requestParameters, initOverrides);
+        return await response.value();
     }
 
 }

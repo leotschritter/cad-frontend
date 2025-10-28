@@ -17,12 +17,15 @@ import * as runtime from '../runtime';
 import type {
   LikeDto,
   LikeResponseDto,
+  MessageResponseDto1,
 } from '../models/index';
 import {
     LikeDtoFromJSON,
     LikeDtoToJSON,
     LikeResponseDtoFromJSON,
     LikeResponseDtoToJSON,
+    MessageResponseDto1FromJSON,
+    MessageResponseDto1ToJSON,
 } from '../models/index';
 
 export interface LikeItineraryItineraryIdDeleteRequest {
@@ -52,7 +55,7 @@ export class LikeManagementApi extends runtime.BaseAPI {
      * Removes a like from an itinerary.
      * Remove like from itinerary
      */
-    async likeItineraryItineraryIdDeleteRaw(requestParameters: LikeItineraryItineraryIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+    async likeItineraryItineraryIdDeleteRaw(requestParameters: LikeItineraryItineraryIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MessageResponseDto1>> {
         if (requestParameters['itineraryId'] == null) {
             throw new runtime.RequiredError(
                 'itineraryId',
@@ -86,15 +89,16 @@ export class LikeManagementApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.VoidApiResponse(response);
+        return new runtime.JSONApiResponse(response, (jsonValue) => MessageResponseDto1FromJSON(jsonValue));
     }
 
     /**
      * Removes a like from an itinerary.
      * Remove like from itinerary
      */
-    async likeItineraryItineraryIdDelete(requestParameters: LikeItineraryItineraryIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
-        await this.likeItineraryItineraryIdDeleteRaw(requestParameters, initOverrides);
+    async likeItineraryItineraryIdDelete(requestParameters: LikeItineraryItineraryIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MessageResponseDto1> {
+        const response = await this.likeItineraryItineraryIdDeleteRaw(requestParameters, initOverrides);
+        return await response.value();
     }
 
     /**
