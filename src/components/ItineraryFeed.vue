@@ -41,6 +41,7 @@ export default defineComponent({
       authStore: useAuthStore(),
       placeholderImage: 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&q=80',
       detailsItinerary: null as ItinerarySearchResponseDto | null,
+      showDetailsDialog: false
     }
   },
   watch: {
@@ -281,8 +282,10 @@ export default defineComponent({
 
     openTripDetailsDialog(itineraryId: number): void {
       this.detailsItinerary = this.itineraries.find((itinerary) => itinerary.id === itineraryId) ?? null;
+      this.showDetailsDialog = true;
     },
     closeTripDetailsDialog(): void {
+      this.showDetailsDialog = false;
       this.detailsItinerary = null;
     }
   }
@@ -324,14 +327,25 @@ export default defineComponent({
               </div>
             </div>
 
-            <!-- Image Carousel -->
-            <v-carousel
+            <!-- Single Image -->
+            <v-img
+              v-if="item.imageUrls && item.imageUrls.length === 1"
+              :src="item.imageUrls[0]"
               height="400"
-              hide-delimiters
+              cover
+            >
+              <template v-slot:placeholder>
+                <v-row class="fill-height ma-0" align="center" justify="center">
+                  <v-progress-circular indeterminate color="primary"></v-progress-circular>
+                </v-row>
+              </template>
+            </v-img>
+
+            <!-- Image Carousel (multiple images) -->
+            <v-carousel
+              v-else-if="item.imageUrls && item.imageUrls.length > 1"
+              height="400"
               show-arrows="hover"
-              cycle
-              interval="5000"
-              @click="openTripDetailsDialog(item.itineraryId)"
             >
               <v-carousel-item
                 v-for="(image, imgIndex) in item.imageUrls"
@@ -369,6 +383,17 @@ export default defineComponent({
               >
                 <v-icon icon="mdi-comment-outline" class="mr-1"></v-icon>
                 <span class="text-body-2">{{ item.comments?.length || 0 }}</span>
+              </v-btn>
+              <v-spacer></v-spacer>
+              <v-btn
+                :icon="false"
+                @click="item.itineraryId && openTripDetailsDialog(item.itineraryId)"
+                size="large"
+                variant="text"
+                class="px-2"
+              >
+                <v-icon icon="mdi-map-marker-path" class="mr-1"></v-icon>
+                <span class="text-body-2">Details</span>
               </v-btn>
             </v-card-actions>
 
@@ -445,7 +470,7 @@ export default defineComponent({
         </v-col>
       </v-row>
     </v-container>
-    <v-dialog v-model="detailsItinerary" max-width="90vw" persistent>
+    <v-dialog v-model="showDetailsDialog" max-width="90vw" persistent>
       <v-card style="max-height: 90vh;">
         <v-card-title class="text-h6 bg-primary d-flex align-center">
           <v-icon class="mr-2">mdi-map-marker-path</v-icon>
@@ -494,7 +519,24 @@ export default defineComponent({
 }
 
 :deep(.v-carousel__controls) {
-  background: transparent;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.3) 0%, transparent 100%);
+  padding: 12px;
+}
+
+:deep(.v-carousel__controls .v-btn) {
+  width: 8px;
+  height: 8px;
+  min-width: 8px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.5) !important;
+  margin: 0 4px;
+  transition: all 0.3s ease;
+}
+
+:deep(.v-carousel__controls .v-btn--active) {
+  background-color: rgba(255, 255, 255, 1) !important;
+  width: 10px;
+  height: 10px;
 }
 
 :deep(.v-btn--icon) {
