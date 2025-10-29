@@ -3,6 +3,7 @@ import { defineComponent } from "vue";
 import type { ItinerarySearchResponseDto, CommentDto } from "@/api";
 import { getApi } from "@/services/api";
 import { useAuthStore } from "@/stores/auth";
+import TripViewReadOnly from "@/components/TripViewReadOnly.vue";
 
 interface Comment {
   id: string;
@@ -23,6 +24,7 @@ interface ItineraryWithInteractions extends ItinerarySearchResponseDto {
 
 export default defineComponent({
   name: 'ItineraryFeed',
+  components: {TripViewReadOnly},
   props: {
     itineraries: {
       type: Array as () => ItinerarySearchResponseDto[],
@@ -44,7 +46,8 @@ export default defineComponent({
         'https://images.unsplash.com/photo-1509023464722-18d996393ca8?w=800',
         'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=800',
         'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800',
-      ]
+      ],
+      detailsItinerary: null as ItinerarySearchResponseDto | null,
     }
   },
   watch: {
@@ -262,6 +265,13 @@ export default defineComponent({
         navigator.language || 'de-DE',
         { dateStyle: 'medium' }
       ).format(date);
+    },
+
+    openTripDetailsDialog(itineraryId: number): void {
+      this.detailsItinerary = this.itineraries.find((itinerary) => itinerary.id === itineraryId) ?? null;
+    },
+    closeTripDetailsDialog(): void {
+      this.detailsItinerary = null;
     }
   }
 })
@@ -308,6 +318,7 @@ export default defineComponent({
               height="400"
               cover
               class="feed-image"
+              @click="openTripDetailsDialog(item.itineraryId)"
             >
               <template v-slot:placeholder>
                 <v-row class="fill-height ma-0" align="center" justify="center">
@@ -414,6 +425,28 @@ export default defineComponent({
         </v-col>
       </v-row>
     </v-container>
+    <v-dialog v-model="detailsItinerary" max-width="90vw" persistent>
+      <v-card style="max-height: 90vh;">
+        <v-card-title class="text-h6 bg-primary d-flex align-center">
+          <v-icon class="mr-2">mdi-map-marker-path</v-icon>
+          Show Locations - {{ detailsItinerary?.title || '' }}
+          <v-chip v-if="detailsItinerary?.destination" size="small" class="ml-3" variant="tonal">
+            {{ detailsItinerary.destination }}
+          </v-chip>
+        </v-card-title>
+        <v-card-text class="pa-4" style="height: calc(90vh - 140px); overflow-y: auto;">
+          <TripViewReadOnly
+              :itinerary-id="detailsItinerary?.id"
+              :short-description="detailsItinerary?.shortDescription"
+              @cancel="closeTripDetailsDialog"
+          />
+        </v-card-text>
+        <v-card-actions class="pa-4">
+          <v-spacer/>
+          <v-btn variant="text" size="large" @click="closeTripDetailsDialog">Cancel</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
