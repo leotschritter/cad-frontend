@@ -116,6 +116,32 @@ async function loadLocations() {
       transport: { mode: null, duration: null, distance: null },
       accommodation: null
     }))
+
+    // After loading, geocode all locations to get their coordinates for the map
+    console.log('Geocoding loaded locations...')
+    for (let i = 0; i < locations.value.length; i++) {
+      const location = locations.value[i]
+      if (location.name) {
+        try {
+          const hit = await geocode(location.name)
+          if (hit) {
+            console.log(`Geocoded ${location.name}:`, hit.lat, hit.lng)
+            location.lat = hit.lat
+            location.lng = hit.lng
+            location.address = hit.display
+          } else {
+            console.warn(`Could not geocode location: ${location.name}`)
+          }
+        } catch (error) {
+          console.error(`Error geocoding ${location.name}:`, error)
+        }
+        // Small delay to avoid overwhelming the Nominatim API
+        if (i < locations.value.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1000))
+        }
+      }
+    }
+    console.log('Geocoding complete')
   } catch (error) {
     console.error('Failed to load locations:', error)
     locations.value = []
