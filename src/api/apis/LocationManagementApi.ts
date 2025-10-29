@@ -104,7 +104,7 @@ export class LocationManagementApi extends runtime.BaseAPI {
     }
 
     /**
-     * Adds a new location to an existing itinerary. Upload images directly as multipart form data. Images will be stored in Google Cloud Storage.
+     * Adds a new location to an existing itinerary. Upload images directly as multipart form data (optional). Images will be stored in Google Cloud Storage.
      * Add location to itinerary
      */
     async locationItineraryItineraryIdPostRaw(requestParameters: LocationItineraryItineraryIdPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<LocationDto>> {
@@ -173,7 +173,7 @@ export class LocationManagementApi extends runtime.BaseAPI {
     }
 
     /**
-     * Adds a new location to an existing itinerary. Upload images directly as multipart form data. Images will be stored in Google Cloud Storage.
+     * Adds a new location to an existing itinerary. Upload images directly as multipart form data (optional). Images will be stored in Google Cloud Storage.
      * Add location to itinerary
      */
     async locationItineraryItineraryIdPost(requestParameters: LocationItineraryItineraryIdPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<LocationDto> {
