@@ -7,6 +7,7 @@ import { useAuthStore} from '@/stores/auth.ts'
 import ItineraryDetails from '@/components/ItineraryDetails.vue'
 import TripView from '@/components/TripView.vue'
 import TripViewReadOnly from "@/components/TripViewReadOnly.vue";
+import { getApi } from "@/services/api";
 
 export default defineComponent({
   name: 'Itinerary',
@@ -43,11 +44,16 @@ export default defineComponent({
       ],
       itineraryStore: (null as any),
       authStore: (null as any),
+      likeApi: getApi('LikeManagementApi'),
+      likesMap: ref<Record<number, number>>({}),
     }
   },
   computed: {
     itemsFromStore() {
-      return this.itineraryStore.itineraries;
+      return this.itineraryStore.itineraries.map((item: ItineraryDto) => ({
+        ...item,
+        likes: this.likesMap[item.id || 0] || 0
+      }));
     }
   },
   created() {
@@ -56,7 +62,35 @@ export default defineComponent({
     this.itineraryStore = useItineraryStore();
     this.itineraryStore.loadItineraries(this.authStore.user.email);
   },
+  watch: {
+    'itineraryStore.itineraries': {
+      handler() {
+        this.loadLikesForAllItineraries();
+      }
+    }
+  },
   methods: {
+    async loadLikesForAllItineraries() {
+      if (!this.itineraryStore || !this.itineraryStore.itineraries) {
+        return;
+      }
+
+      const itineraries = this.itineraryStore.itineraries;
+
+      for (const itinerary of itineraries) {
+        if (itinerary.id) {
+          try {
+            const likeResponse = await this.likeApi.likeItineraryItineraryIdGet({
+              itineraryId: itinerary.id
+            });
+            this.likesMap[itinerary.id] = likeResponse.likeCount || 0;
+          } catch (err) {
+            console.error(`Failed to load likes for itinerary ${itinerary.id}:`, err);
+            this.likesMap[itinerary.id] = 0;
+          }
+        }
+      }
+    },
     open(action: 'create' | 'showDetails' | 'editLocations' | 'showLocations', item?: ItineraryDto) {
       if (action === 'create') {
         this.isCreate = true;
