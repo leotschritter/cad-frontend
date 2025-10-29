@@ -22,7 +22,8 @@ export const useItineraryStore = defineStore('itinerary', {
       const itineraryApi = getApi('ItineraryManagementApi')
       try {
          await itineraryApi.itineraryCreateEmailPost({email: email, itineraryDto: itineraryDto})
-         this.itineraries.push(itineraryDto)
+         // Reload all itineraries to get the newly created one with its backend-assigned ID
+         await this.loadItineraries(email)
        } catch (error) {
          console.error('Failed to add itinerary:', error)
        }
