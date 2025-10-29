@@ -3,6 +3,7 @@
     <div class="flex-1 map-pane">
       <TripPlanner
           :locations="locations"
+          :itinerary-id="itineraryId"
           :short-description="shortDescription"
           @update:locations="onPlannerUpdate"
           @geocode-request="onGeocodeRequest"
@@ -29,10 +30,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import TripPlanner from './TripPlanner.vue'
 import TripMap from './TripMap.vue'
 import { useNominatim } from './useNominatim'
+import { useLocationStore } from '@/stores/location'
 
 export type Locations = {
   id: number
@@ -45,6 +47,7 @@ export type Locations = {
   address?: string | null
   shortDescription?: string | null
   images?: string[]
+  pendingFiles?: File[]  // Files staged for upload
   transport: { mode: string | null; duration: string | null; distance: string | null }
   accommodation: null | {
     name: string
@@ -57,9 +60,10 @@ export type Locations = {
   }
 }
 
-// Accept optional props
+// Accept props for itinerary ID and optional initial data
 const props = defineProps<{
   shortDescription?: string,
+  itineraryId?: number,
   initialDestinations?: Locations[]
 }>()
 
@@ -68,14 +72,66 @@ const emit = defineEmits<{
   (e: 'cancel'): void
 }>()
 
-const locations = ref<Locations[]>(props.initialDestinations || [
-  { id: 1, name: 'Milano',  start: '2025-06-02', end: '2025-06-05', nights: 2, lat: 45.4642, lng: 9.19,    address: 'Milan, Italy',   transport: { mode: null,   duration: '2h 27m', distance: null }, accommodation: null },
-  { id: 2, name: 'Venice',  start: '2025-06-05', end: '2025-06-08', nights: 3, lat: 45.4408, lng: 12.3155, address: 'Venezia, Italy', transport: { mode: 'train', duration: '2h 13m', distance: null }, accommodation: { name: 'Canal View Boutique', rating: 4.5, pricePerNight: '€180' } },
-  { id: 3, name: 'Florence',start: '2025-06-08', end: '2025-06-12', nights: 3, lat: 43.7696, lng: 11.2558, address: 'Firenze, Italy',  transport: { mode: 'car',   duration: null,    distance: '231 km' }, accommodation: null },
-  { id: 4, name: 'Rome',    start: '2025-06-12', end: '2025-06-16', nights: 4, lat: 41.9028, lng: 12.4964, address: 'Roma, Italy',     transport: { mode: 'train', duration: null,    distance: null },    accommodation: null },
-])
-
+// Initialize stores
+const locationStore = useLocationStore()
 const { geocode } = useNominatim()
+
+// Initialize locations - will be loaded from API if itineraryId is provided
+const locations = ref<Locations[]>(props.initialDestinations || [])
+const loading = ref(false)
+
+// Load locations from API when component mounts
+onMounted(async () => {
+  if (props.itineraryId) {
+    await loadLocations()
+  }
+})
+
+// Watch for itineraryId changes and reload locations
+watch(() => props.itineraryId, async (newId) => {
+  if (newId) {
+    await loadLocations()
+  }
+})
+
+async function loadLocations() {
+  if (!props.itineraryId) return
+
+  loading.value = true
+  try {
+    const apiLocations = await locationStore.getLocationsForItinerary(props.itineraryId)
+
+    // Convert API LocationDto to our Locations type
+    locations.value = apiLocations.map(loc => ({
+      id: loc.id || Date.now(),
+      name: loc.name || 'Unnamed Location',
+      start: loc.fromDate ? new Date(loc.fromDate).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
+      end: loc.toDate ? new Date(loc.toDate).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
+      nights: calculateNights(loc.fromDate, loc.toDate),
+      lat: null,
+      lng: null,
+      address: null,
+      shortDescription: loc.description || null,
+      images: loc.imageUrls || [],
+      transport: { mode: null, duration: null, distance: null },
+      accommodation: null
+    }))
+  } catch (error) {
+    console.error('Failed to load locations:', error)
+    locations.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
+function calculateNights(fromDate?: Date, toDate?: Date): number {
+  if (!fromDate || !toDate) return 1
+  const start = new Date(fromDate)
+  const end = new Date(toDate)
+  const diffTime = end.getTime() - start.getTime()
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+  return Math.max(1, diffDays)
+}
 
 function onPlannerUpdate(next: Locations[]) {
   // Replace array to keep reactivity straightforward across children
@@ -96,36 +152,122 @@ async function onGeocodeRequest(idx: number, query: string) {
   d.lng = hit.lng
 }
 
-const mapExpanded = ref(false)
-function onMapExpanded(expanded: boolean) {
-  mapExpanded.value = expanded
+/**
+ * Save all locations to the backend, including uploading any pending images
+ * Strategy: Delete all existing locations, then recreate them with current state
+ * This ensures order, renames, and all changes are properly saved
+ */
+async function saveAllLocations(): Promise<boolean> {
+  console.log('saveAllLocations called')
+
+  if (!props.itineraryId) {
+    console.error('No itinerary ID provided')
+    return false
+  }
+
+  console.log('Saving locations for itinerary:', props.itineraryId)
+  console.log('Number of locations to save:', locations.value.length)
+
+  loading.value = true
+  let success = true
+
+  try {
+    // Step 1: Get all existing locations from backend
+    console.log('Step 1: Fetching existing locations from backend...')
+    const existingLocations = await locationStore.getLocationsForItinerary(props.itineraryId)
+    console.log('Found', existingLocations.length, 'existing locations')
+
+    // Step 2: Delete all existing locations
+    console.log('Step 2: Deleting all existing locations...')
+    for (const existingLoc of existingLocations) {
+      if (existingLoc.id) {
+        console.log('Deleting location ID:', existingLoc.id, 'Name:', existingLoc.name)
+        const deleted = await locationStore.deleteLocation(existingLoc.id)
+        if (!deleted) {
+          console.warn('Failed to delete location:', existingLoc.id)
+        }
+      }
+    }
+    console.log('All existing locations deleted')
+
+    // Step 3: Create all locations fresh with current state
+    console.log('Step 3: Creating all locations with current state...')
+    for (let i = 0; i < locations.value.length; i++) {
+      const location = locations.value[i]
+      console.log(`Creating location ${i + 1}/${locations.value.length}:`, location.name)
+
+      // Create new location in backend
+      const newLocation = await locationStore.addLocationToItinerary({
+        itineraryId: props.itineraryId,
+        name: location.name,
+        description: location.shortDescription || undefined,
+        fromDate: new Date(location.start),
+        toDate: new Date(location.end),
+        files: location.pendingFiles || []
+      })
+
+      if (newLocation) {
+        console.log('Location created successfully with ID:', newLocation.id)
+        // Update the local ID with the backend ID
+        location.id = newLocation.id!
+        // Clear pending files since they've been uploaded
+        location.pendingFiles = []
+        // Update images with the actual URLs from backend
+        if (newLocation.imageUrls) {
+          location.images = newLocation.imageUrls
+        }
+      } else {
+        success = false
+        console.error(`Failed to create location: ${location.name}`)
+      }
+    }
+
+    console.log('All locations recreated. Success:', success)
+    return success
+  } catch (error) {
+    console.error('Error saving locations:', error)
+    return false
+  } finally {
+    loading.value = false
+  }
 }
+
+// Expose the save method so parent can call it
+defineExpose({
+  saveAllLocations
+})
+
+const mapExpanded = ref(false)
 </script>
 
 <style scoped>
-.gap-4 { gap: 1rem; }
-
 .map-pane {
-  aspect-ratio: 16 / 10;
+  min-width: 300px;
+  max-width: 600px;
+  width: 100%;
 }
 
 .map-overlay {
   position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,.45);
-  z-index: 2000;
-  display: grid;
-  place-items: center; /* ← perfectly centered */
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
 }
+
 .map-dialog {
-  width: min(1200px, 92vw);
-  height: min(85vh, 900px);
   background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 12px 48px rgba(0,0,0,0.35);
+  border-radius: 8px;
   overflow: hidden;
+  width: 90%;
+  max-width: 800px;
+  max-height: 90%;
+  display: flex;
+  flex-direction: column;
 }
-.map-dialog :deep(.map-wrapper) { height: 100%; }
-.map-dialog :deep(.map-wrapper.expanded) { height: 100%; }
-.map-dialog :deep(.map-el) { width: 100%; height: 100%; }
 </style>

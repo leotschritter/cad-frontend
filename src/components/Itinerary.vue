@@ -26,6 +26,7 @@ export default defineComponent({
       selected: ref<ItineraryDto | null>(null),
       editingItinerary: ref<ItineraryDto | null>(null),
       valid: ref(false),
+      tripViewRef: ref<any>(null),  // Reference to TripView component
       newItinerary: {
         title: '',
         destination: '',
@@ -75,7 +76,7 @@ export default defineComponent({
         this.isShowLocations = true;
       }
     },
-    close(action: 'submit' | 'cancel' | 'closeDetails' | 'submitLocations' | 'cancelLocations' | 'cancelReadonlyLocations') {
+    async close(action: 'submit' | 'cancel' | 'closeDetails' | 'submitLocations' | 'cancelLocations' | 'cancelReadonlyLocations') {
       if (action === 'submit') {
         this.itineraryStore.addNewItinerary(this.authStore.user.email, this.newItinerary as ItineraryDto);
         this.clearItinerary();
@@ -87,10 +88,21 @@ export default defineComponent({
         this.isDetails = false;
         this.selected = null;
       } else if (action === 'submitLocations') {
-        // Handle saving the locations data here
-        // You can update the itinerary in the store
-        this.isEditLocations = false;
-        this.editingItinerary = null;
+        // Save all locations to the backend (including pending images)
+        const tripView = this.$refs.tripViewRef as any;
+        if (tripView && tripView.saveAllLocations) {
+          const success = await tripView.saveAllLocations();
+          if (success) {
+            this.isEditLocations = false;
+            this.editingItinerary = null;
+          } else {
+            alert('Some locations or images failed to save. Please try again.');
+          }
+        } else {
+          console.error('TripView ref not found or saveAllLocations method not available');
+          this.isEditLocations = false;
+          this.editingItinerary = null;
+        }
       } else if (action === 'cancelLocations') {
         this.isEditLocations = false;
         this.editingItinerary = null;
@@ -260,6 +272,8 @@ export default defineComponent({
             <v-card-text class="pa-4" style="height: calc(90vh - 140px); overflow-y: auto;">
               <TripView
                   v-if="editingItinerary"
+                  ref="tripViewRef"
+                  :itinerary-id="editingItinerary.id"
                   :short-description="editingItinerary.shortDescription"
                   @submit="close('submitLocations')"
                   @cancel="close('cancelLocations')"

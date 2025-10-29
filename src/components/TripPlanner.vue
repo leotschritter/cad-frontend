@@ -211,7 +211,7 @@
                         variant="tonal"
                         prepend-icon="mdi-upload"
                         @click="uploadImages(element)"
-                        :disabled="!selectedFiles[element.id] || selectedFiles[element.id].length === 0 || uploadingImages[element.id]"
+                        :disabled="!selectedFiles[element.id] || selectedFiles[element.id]?.length === 0 || uploadingImages[element.id]"
                         :loading="uploadingImages[element.id]"
                     >
                       Upload
@@ -495,16 +495,21 @@
 import { ref, computed, nextTick } from 'vue'
 import Draggable from 'vuedraggable'
 import type { Locations } from './TripView.vue'
+import { useLocationStore } from '@/stores/location'
 
 /** Props & emits */
 const props = defineProps<{
   locations: Locations[],
   shortDescription?: string,
+  itineraryId?: number,
 }>()
 const emit = defineEmits<{
   (e: 'update:locations', value: Locations[]): void
   (e: 'geocode-request', index: number, query: string): void
 }>()
+
+// Initialize location store
+const locationStore = useLocationStore()
 
 /** v-model proxy for the prop so Draggable always has a real array */
 const itemsModel = computed<Locations[]>({
@@ -629,7 +634,7 @@ const accForm = ref({
   url: '',
   image: '',
   pricePerNight: '',
-  rating: 0 as number | null,
+  rating: 0 as number | undefined,
   notes: '',
 })
 
@@ -648,7 +653,12 @@ function openAccDialog(destination: Locations) {
 }
 function saveAccommodation() {
   if (!accDialog.value.model) return
-  accDialog.value.model.accommodation = { ...accForm.value }
+  const formData = { ...accForm.value }
+  // Convert rating to undefined if 0
+  if (formData.rating === 0) {
+    formData.rating = undefined
+  }
+  accDialog.value.model.accommodation = formData
   accDialog.value.open = false
   emitUpdate()
 }
@@ -663,14 +673,21 @@ const deleteDialog = ref<{ open: boolean; model: Locations | null }>({ open: fal
 function openDeleteDialog(destination: Locations) {
   deleteDialog.value = { open: true, model: destination }
 }
-function confirmDelete() {
-  if (deleteDialog.value.model) {
-    const index = itemsModel.value.findIndex(item => item.id === deleteDialog.value.model?.id)
-    if (index !== -1) {
-      itemsModel.value.splice(index, 1)
-      emitUpdate()
-    }
+async function confirmDelete() {
+  if (!deleteDialog.value.model) return
+
+  const destination = deleteDialog.value.model
+  const index = itemsModel.value.findIndex(item => item.id === destination.id)
+
+  if (index === -1) {
+    deleteDialog.value.open = false
+    return
   }
+
+  // Just remove locally - the backend sync happens when user clicks "Save Changes"
+  itemsModel.value.splice(index, 1)
+  emitUpdate()
+
   deleteDialog.value.open = false
 }
 
@@ -683,10 +700,34 @@ function addImage(destination: Locations) {
   newImageUrl.value[destination.id] = ''
   emitUpdate()
 }
-function removeImage(destination: Locations, index: number) {
+async function removeImage(destination: Locations, index: number) {
   if (!destination.images) return
-  destination.images.splice(index, 1)
-  emitUpdate()
+
+  const imageUrl = destination.images[index]
+
+  // If location has a backend ID, delete from server
+  if (destination.id && destination.id >= 100000 && imageUrl) {
+    try {
+      const success = await locationStore.deleteImageFromLocation({
+        locationId: destination.id,
+        imageUrl: imageUrl
+      })
+
+      if (success) {
+        destination.images.splice(index, 1)
+        emitUpdate()
+      } else {
+        alert('Failed to delete image from server')
+      }
+    } catch (error) {
+      console.error('Error deleting image:', error)
+      alert('Failed to delete image')
+    }
+  } else {
+    // Just remove locally if not yet saved to backend
+    destination.images.splice(index, 1)
+    emitUpdate()
+  }
 }
 
 /** File upload handling */
@@ -695,50 +736,68 @@ function onFileSelected(destination: Locations) {
   // The actual upload happens when user clicks Upload button
 }
 
-async function uploadImages(locations: Locations) {
-  const files = selectedFiles.value[locations.id] || []
+async function uploadImages(location: Locations) {
+  const files = selectedFiles.value[location.id] || []
   if (files.length === 0) return
 
-  uploadingImages.value[locations.id] = true
+  uploadingImages.value[location.id] = true
 
-  /*try {
+  try {
     // Validate file types and sizes
     for (const file of files) {
       if (!file.type.startsWith('image/')) {
         alert(`${file.name} is not an image file`)
-        uploadingImages.value[locations.id] = false
+        uploadingImages.value[location.id] = false
         return
       }
       if (file.size > 5 * 1024 * 1024) {
         alert(`${file.name} is larger than 5MB`)
-        uploadingImages.value[locations.id] = false
+        uploadingImages.value[location.id] = false
         return
       }
     }
 
-    // Upload all files to Google Cloud Storage
-    const uploadedUrls = await storageService.uploadMultipleImages(
-      files,
-      `locations/${locations.id}`
-    )
+    // Convert files to data URLs for preview (don't upload yet)
+    const dataUrls: string[] = []
+    for (const file of files) {
+      const dataUrl = await readFileAsDataURL(file)
+      dataUrls.push(dataUrl)
+    }
 
-    // Add the uploaded URLs to the locations
-    if (!locations.images) locations.images = []
-    locations.images.push(...uploadedUrls)
+    // Add the data URLs to the location for preview
+    if (!location.images) location.images = []
+    location.images.push(...dataUrls)
+
+    // Store the actual files for later upload (when saving the whole itinerary)
+    if (!location.pendingFiles) {
+      location.pendingFiles = []
+    }
+    location.pendingFiles.push(...files)
 
     // Clear the selected files
-    selectedFiles.value[locations.id] = []
+    selectedFiles.value[location.id] = []
 
     emitUpdate()
 
-    // Show success message
-    console.log(`Successfully uploaded ${uploadedUrls.length} image(s)`)
+    console.log(`Staged ${dataUrls.length} image(s) for upload`)
   } catch (error: any) {
-    console.error('Error uploading images:', error)
-    alert(`Upload failed: ${error.message || 'Unknown error'}`)
+    console.error('Error staging images:', error)
+    alert(`Failed to stage images: ${error.message || 'Unknown error'}`)
   } finally {
-    uploadingImages.value[locations.id] = false
-  }*/
+    uploadingImages.value[location.id] = false
+  }
+}
+
+// Helper function to read file as data URL
+function readFileAsDataURL(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      resolve(e.target?.result as string)
+    }
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
 }
 </script>
 
