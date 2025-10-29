@@ -5,7 +5,7 @@ import type { ItineraryDto } from "@/api";
 import { useItineraryStore } from '@/stores/itinerary.ts'
 import { useAuthStore} from '@/stores/auth.ts'
 import ItineraryDetails from '@/components/ItineraryDetails.vue'
-import TripView, { type Locations } from '@/components/TripView.vue'
+import TripView from '@/components/TripView.vue'
 import TripViewReadOnly from "@/components/TripViewReadOnly.vue";
 
 export default defineComponent({
@@ -43,12 +43,6 @@ export default defineComponent({
       ],
       itineraryStore: (null as any),
       authStore: (null as any),
-      locations: ref<Locations[]>([
-        { id: 1, name: 'Milano',  start: '2025-06-02', end: '2025-06-05', nights: 2, lat: 45.4642, lng: 9.19,    address: 'Milan, Italy',   transport: { mode: null,   duration: '2h 27m', distance: null }, accommodation: null },
-        { id: 2, name: 'Venice',  start: '2025-06-05', end: '2025-06-08', nights: 3, lat: 45.4408, lng: 12.3155, address: 'Venezia, Italy', transport: { mode: 'train', duration: '2h 13m', distance: null }, accommodation: { name: 'Canal View Boutique', rating: 4.5, pricePerNight: '€180' } },
-        { id: 3, name: 'Florence',start: '2025-06-08', end: '2025-06-12', nights: 3, lat: 43.7696, lng: 11.2558, address: 'Firenze, Italy',  transport: { mode: 'car',   duration: null,    distance: '231 km' }, accommodation: null },
-        { id: 4, name: 'Rome',    start: '2025-06-12', end: '2025-06-16', nights: 4, lat: 41.9028, lng: 12.4964, address: 'Roma, Italy',     transport: { mode: 'train', duration: null,    distance: null },    accommodation: null },
-      ])
     }
   },
   computed: {
@@ -73,6 +67,7 @@ export default defineComponent({
         this.editingItinerary = item || null;
         this.isEditLocations = true;
       } else if (action === 'showLocations') {
+        this.editingItinerary = item || null;
         this.isShowLocations = true;
       }
     },
@@ -108,6 +103,7 @@ export default defineComponent({
         this.editingItinerary = null;
       } else if (action === 'cancelReadonlyLocations') {
         this.isShowLocations = false;
+        this.editingItinerary = null;
       }
     },
     clearItinerary() {
@@ -298,7 +294,8 @@ export default defineComponent({
             </v-card-title>
             <v-card-text class="pa-4" style="height: calc(90vh - 140px); overflow-y: auto;">
               <TripViewReadOnly
-                  :locations="locations"
+                  :itinerary-id="editingItinerary?.id"
+                  :short-description="editingItinerary?.shortDescription"
                   @cancel="close('cancelLocations')"
               />
             </v-card-text>

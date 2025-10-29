@@ -1,6 +1,6 @@
 <!-- TripPlanner.vue -->
 <template>
-  <v-card class="mx-auto my-6" max-width="900">
+  <v-card class="mx-auto" max-width="750">
     <v-toolbar flat density="comfortable">
       <v-toolbar-title>{{ shortDescription }}</v-toolbar-title>
       <v-spacer />

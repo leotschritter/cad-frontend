@@ -1,5 +1,9 @@
 <template>
-  <div class="d-flex flex-lg-row justify-center align-center gap-4">
+  <div v-if="loading" class="d-flex justify-center align-center pa-8">
+    <v-progress-circular indeterminate size="64" color="primary" />
+    <span class="ml-4 text-h6">Loading locations...</span>
+  </div>
+  <div v-else class="d-flex my-6 flex-lg-row justify-center align-start gap-4">
     <div class="flex-1 map-pane">
       <TripPlanner
           :locations="locations"
