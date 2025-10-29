@@ -1,6 +1,6 @@
 <script lang="ts">
 import { defineComponent } from "vue";
-import type { ItinerarySearchResponseDto, CommentDto } from "@/api";
+import type { ItinerarySearchResponseDto, CommentDto, LikeDto } from "@/api";
 import { getApi } from "@/services/api";
 import { useAuthStore } from "@/stores/auth";
 import TripViewReadOnly from "@/components/TripViewReadOnly.vue";
@@ -15,7 +15,7 @@ interface Comment {
 
 interface ItineraryWithInteractions extends ItinerarySearchResponseDto {
   itineraryId?: number;
-  imageUrl?: string;
+  imageUrls?: string[];
   likes?: number;
   isLiked?: boolean;
   comments?: Comment[];
@@ -37,16 +37,9 @@ export default defineComponent({
       newCommentText: {} as Record<number, string>,
       likeApi: getApi('LikeManagementApi'),
       commentApi: getApi('CommentManagementApi'),
+      locationApi: getApi('LocationManagementApi'),
       authStore: useAuthStore(),
-      // Mock Bilder für Destinationen
-      mockImages: [
-        'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800',
-        'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=800',
-        'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=800',
-        'https://images.unsplash.com/photo-1509023464722-18d996393ca8?w=800',
-        'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=800',
-        'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800',
-      ],
+      placeholderImage: 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&q=80',
       detailsItinerary: null as ItinerarySearchResponseDto | null,
     }
   },
@@ -54,19 +47,20 @@ export default defineComponent({
     itineraries: {
       immediate: true,
       async handler(newItineraries: ItinerarySearchResponseDto[]) {
-        this.feedItems = newItineraries.map((item, index) => ({
+        this.feedItems = newItineraries.map((item) => ({
           ...item,
           itineraryId: item.id, // Mappe id zu itineraryId
-          imageUrl: this.mockImages[index % this.mockImages.length],
+          imageUrls: [],
           likes: 0,
           isLiked: false,
           comments: [],
           showAllComments: false
         }));
 
-        // Lade die echten Like-Daten und Kommentare für alle Itineraries
+        // Lade die echten Like-Daten, Kommentare und Bilder für alle Itineraries
         await this.loadLikesForAllItems();
         await this.loadCommentsForAllItems();
+        await this.loadImagesForAllItems();
       }
     }
   },
@@ -90,7 +84,7 @@ export default defineComponent({
               item.likes = likeResponse.likeCount || 0;
 
               // Prüfe, ob der User diese Itinerary geliked hat
-              item.isLiked = userLikes.some((like: any) => like.itineraryId === item.itineraryId);
+              item.isLiked = userLikes.some((like: LikeDto) => like.itineraryId === item.itineraryId);
             } catch (err) {
               console.error(`Failed to load likes for itinerary ${item.itineraryId}:`, err);
               item.likes = 0;
@@ -130,9 +124,36 @@ export default defineComponent({
       }
     },
 
-    generateMockComments(): Comment[] {
-      // Diese Methode wird nicht mehr verwendet, da wir echte Kommentare vom Backend laden
-      return [];
+    async loadImagesForAllItems() {
+      for (const item of this.feedItems) {
+        if (item.itineraryId) {
+          try {
+            const locations = await this.locationApi.locationItineraryItineraryIdGet({
+              itineraryId: item.itineraryId
+            });
+
+            // Sammle alle Bilder aus allen Locations
+            const allImages: string[] = [];
+            for (const location of locations) {
+              if (location.imageUrls && location.imageUrls.length > 0) {
+                allImages.push(...location.imageUrls);
+              }
+            }
+
+            // Setze die echten Bilder oder Platzhalterbild wenn keine vorhanden
+            if (allImages.length > 0) {
+              item.imageUrls = allImages;
+            } else {
+              item.imageUrls = [this.placeholderImage];
+            }
+
+          } catch (err) {
+            console.error(`Failed to load images for itinerary ${item.itineraryId}:`, err);
+            // Fallback zum Platzhalterbild bei Fehler
+            item.imageUrls = [this.placeholderImage];
+          }
+        }
+      }
     },
 
     async toggleLike(item: ItineraryWithInteractions) {
@@ -173,14 +194,15 @@ export default defineComponent({
 
           console.log(`Liked itinerary ${item.itineraryId}`);
         }
-      } catch (err: any) {
+      } catch (err) {
         // Bei Fehler: Vorherigen Zustand wiederherstellen
         console.error('Failed to toggle like:', err);
         item.isLiked = previousLikeState;
         item.likes = previousLikeCount;
 
         // Optional: Zeige Fehlermeldung an
-        if (err?.response?.status === 409) {
+        const error = err as { response?: { status?: number } };
+        if (error?.response?.status === 409) {
           console.warn('Like already exists or was already removed');
         }
       }
@@ -257,16 +279,6 @@ export default defineComponent({
       return `${Math.floor(diffDays / 30)}mo`;
     },
 
-    formatDate(d: string | Date | null | undefined): string {
-      if (!d) return '';
-      const date = d instanceof Date ? d : new Date(d);
-      if (isNaN(date.getTime())) return '';
-      return new Intl.DateTimeFormat(
-        navigator.language || 'de-DE',
-        { dateStyle: 'medium' }
-      ).format(date);
-    },
-
     openTripDetailsDialog(itineraryId: number): void {
       this.detailsItinerary = this.itineraries.find((itinerary) => itinerary.id === itineraryId) ?? null;
     },
@@ -312,20 +324,28 @@ export default defineComponent({
               </div>
             </div>
 
-            <!-- Image -->
-            <v-img
-              :src="item.imageUrl"
+            <!-- Image Carousel -->
+            <v-carousel
               height="400"
-              cover
-              class="feed-image"
+              hide-delimiters
+              show-arrows="hover"
+              cycle
+              interval="5000"
               @click="openTripDetailsDialog(item.itineraryId)"
             >
-              <template v-slot:placeholder>
-                <v-row class="fill-height ma-0" align="center" justify="center">
-                  <v-progress-circular indeterminate color="primary"></v-progress-circular>
-                </v-row>
-              </template>
-            </v-img>
+              <v-carousel-item
+                v-for="(image, imgIndex) in item.imageUrls"
+                :key="imgIndex"
+                :src="image"
+                cover
+              >
+                <template v-slot:placeholder>
+                  <v-row class="fill-height ma-0" align="center" justify="center">
+                    <v-progress-circular indeterminate color="primary"></v-progress-circular>
+                  </v-row>
+                </template>
+              </v-carousel-item>
+            </v-carousel>
 
             <!-- Action Bar -->
             <v-card-actions class="px-3 py-2">
@@ -468,14 +488,17 @@ export default defineComponent({
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
 }
 
-.feed-image {
-  cursor: pointer;
-  transition: transform 0.3s ease, filter 0.3s ease;
+/* Carousel styling */
+:deep(.v-carousel) {
+  border-radius: 0;
 }
 
-.feed-image:hover {
-  transform: scale(1.02);
-  filter: brightness(1.05);
+:deep(.v-carousel__controls) {
+  background: transparent;
+}
+
+:deep(.v-btn--icon) {
+  background-color: rgba(255, 255, 255, 0.8);
 }
 
 .feed-title {
