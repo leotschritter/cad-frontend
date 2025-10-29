@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { getApi } from "@/services/api.ts";
 import type { LocationDto } from "@/api";
+import { formatDate } from "@/utils/dateUtils.ts";
 
 const locationApi = getApi('LocationManagementApi')
 
@@ -42,7 +43,11 @@ export const useLocationStore = defineStore('location', {
       try {
         // Ensure files are properly converted to Blob array if needed
         const requestPayload = {
-          ...payload,
+          itineraryId: payload.itineraryId,
+          name: payload.name,
+          description: payload.description,
+          fromDate: payload.fromDate ? formatDate(payload.fromDate) : undefined,
+          toDate: payload.toDate ? formatDate(payload.toDate) : undefined,
           files: payload.files ? payload.files.map(f => f as Blob) : undefined
         }
 

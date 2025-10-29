@@ -36,8 +36,8 @@ export interface LocationItineraryItineraryIdPostRequest {
     itineraryId: number;
     name?: string;
     description?: string;
-    fromDate?: Date;
-    toDate?: Date;
+    fromDate?: string;
+    toDate?: string;
     files?: Array<Blob>;
 }
 
