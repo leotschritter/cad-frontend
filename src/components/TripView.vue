@@ -226,6 +226,14 @@ async function saveAllLocations(): Promise<boolean> {
       const location = locations.value[i]
       console.log(`Creating location ${i + 1}/${locations.value.length}:`, location.name)
 
+      // Log file information if there are pending files
+      if (location.pendingFiles && location.pendingFiles.length > 0) {
+        console.log(`  - Uploading ${location.pendingFiles.length} file(s)`)
+        location.pendingFiles.forEach((file, idx) => {
+          console.log(`    File ${idx + 1}: ${file.name} (${file.size} bytes, ${file.type})`)
+        })
+      }
+
       // Create new location in backend
       const newLocation = await locationStore.addLocationToItinerary({
         itineraryId: props.itineraryId,

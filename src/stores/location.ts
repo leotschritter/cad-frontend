@@ -37,15 +37,22 @@ export const useLocationStore = defineStore('location', {
       description?: string,
       fromDate?: Date,
       toDate?: Date,
-      files?: Array<Blob>
+      files?: Array<Blob | File>
     }): Promise<LocationDto | null> {
       try {
-        const location = await locationApi.locationItineraryItineraryIdPost(payload)
+        // Ensure files are properly converted to Blob array if needed
+        const requestPayload = {
+          ...payload,
+          files: payload.files ? payload.files.map(f => f as Blob) : undefined
+        }
+
+        const location = await locationApi.locationItineraryItineraryIdPost(requestPayload)
         // Add to local state
         this.locations.push(location)
         this.currentLocation = location
         return location
       } catch (err: any) {
+        console.error('Error adding location to itinerary:', err)
         const status = err?.response?.status
         if (status === 400 || status === 404) {
           return null
@@ -100,10 +107,16 @@ export const useLocationStore = defineStore('location', {
      */
     async uploadImagesToLocation(payload: {
       locationId: number,
-      files: Array<Blob>
+      files: Array<Blob | File>
     }): Promise<{ imageUrls?: string[] } | null> {
       try {
-        const response = await locationApi.locationLocationIdImagesPost(payload)
+        // Ensure files are properly converted to Blob array if needed
+        const requestPayload = {
+          locationId: payload.locationId,
+          files: payload.files.map(f => f as Blob)
+        }
+
+        const response = await locationApi.locationLocationIdImagesPost(requestPayload)
 
         // Update the location in local state with new image URLs
         if (response.imageUrls) {
@@ -118,6 +131,7 @@ export const useLocationStore = defineStore('location', {
 
         return response.imageUrls
       } catch (err: any) {
+        console.error('Error uploading images to location:', err)
         const status = err?.response?.status
         if (status === 400 || status === 404) {
           return null
