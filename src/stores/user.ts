@@ -38,14 +38,17 @@ export const useUserStore = defineStore('user',{
       }
     },
     async userUploadProfileImage(payload: { email: string, file: Blob}): Promise<UserDto | null> {
+      const email = payload.email;
       try {
         const response = await userApi.userEmailProfileImagePost(payload);
-        if (this.user) {
+        if (!this.user) {
+          this.user = await userApi.userGetGet({ email });
+          if (!this.user) return null;
           this.user.profileImageUrl = response.imageUrl ?? undefined;
-          return this.user;
         } else {
-          return null;
+          this.user.profileImageUrl = response.imageUrl ?? undefined;
         }
+        return this.user;
       } catch (err: any) {
         if (this.user) {
           this.user.profileImageUrl = undefined;
