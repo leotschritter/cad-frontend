@@ -41,13 +41,15 @@ export default defineComponent({
       authStore: useAuthStore(),
       placeholderImage: 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&q=80',
       detailsItinerary: null as ItinerarySearchResponseDto | null,
-      showDetailsDialog: false
+      showDetailsDialog: false,
+      isLoadingImages: true
     }
   },
   watch: {
     itineraries: {
       immediate: true,
       async handler(newItineraries: ItinerarySearchResponseDto[]) {
+        this.isLoadingImages = true;
         this.feedItems = newItineraries.map((item) => ({
           ...item,
           itineraryId: item.id, // Mappe id zu itineraryId
@@ -62,6 +64,7 @@ export default defineComponent({
         await this.loadLikesForAllItems();
         await this.loadCommentsForAllItems();
         await this.loadImagesForAllItems();
+        this.isLoadingImages = false;
       }
     }
   },
@@ -294,8 +297,25 @@ export default defineComponent({
 
 <template>
   <div class="itinerary-feed">
+    <!-- Loading Screen -->
+    <div v-if="isLoadingImages" class="loading-overlay">
+      <v-container class="fill-height">
+        <v-row align="center" justify="center">
+          <v-col cols="12" class="text-center">
+            <v-progress-circular
+              :size="70"
+              :width="7"
+              color="primary"
+              indeterminate
+            ></v-progress-circular>
+            <div class="text-h6 mt-4 text-medium-emphasis">Loading itineraries...</div>
+          </v-col>
+        </v-row>
+      </v-container>
+    </div>
+
     <!-- Feed Items -->
-    <v-container class="py-4">
+    <v-container v-else class="py-4">
       <v-row justify="center">
         <v-col cols="12" md="8" lg="6">
           <v-card
@@ -498,6 +518,21 @@ export default defineComponent({
 <style scoped>
 .itinerary-feed {
   background-color: #fafafa;
+  min-height: 100vh;
+  position: relative;
+}
+
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #fafafa;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   min-height: 100vh;
 }
 
