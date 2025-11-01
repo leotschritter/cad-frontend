@@ -28,7 +28,7 @@ jobs:
           file: ./Dockerfile
           push: true
           build-args: |
-            VITE_API_BASE_URL=http://35.234.115.11:8080
+            VITE_API_BASE_URL=https://tripico.duckdns.org/api
           tags: |
             ghcr.io/${{ github.repository }}:iaas-latest
             ghcr.io/${{ github.repository }}:iaas-${{ github.sha }}
