@@ -19,9 +19,8 @@ FROM nginx:1.27-alpine
 
 COPY --from=build /app/dist /usr/share/nginx/html
 
-# Template mit Platzhalter für envsubst
 RUN echo 'server { \
-  listen ${PORT}; \
+  listen $PORT; \
   server_name _; \
   root /usr/share/nginx/html; \
   index index.html; \
@@ -30,5 +29,4 @@ RUN echo 'server { \
 
 EXPOSE 8080
 
-# envsubst ersetzt ${PORT} zur Laufzeit
 CMD ["/bin/sh", "-c", "envsubst '$$PORT' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf && exec nginx -g 'daemon off;'"]
