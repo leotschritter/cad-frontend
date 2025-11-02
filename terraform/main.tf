@@ -9,16 +9,11 @@ locals {
   service_account_name = var.use_random_suffix ? "${var.app_name}-sa-${local.suffix}" : "${var.app_name}-sa"
 }
 
-# Enable required Google Cloud APIs
-resource "google_project_service" "required_apis" {
-  for_each = toset([
-    "run.googleapis.com",
-    "artifactregistry.googleapis.com",
-  ])
-
-  service            = each.value
-  disable_on_destroy = false
-}
+# Note: Required Google Cloud APIs must be enabled manually or by an admin:
+# - run.googleapis.com (Cloud Run)
+# - artifactregistry.googleapis.com (Artifact Registry)
+# These are typically already enabled in existing projects.
+# If not enabled, run: gcloud services enable run.googleapis.com artifactregistry.googleapis.com
 
 # Service Account for Cloud Run
 resource "google_service_account" "cloud_run_sa" {
@@ -26,7 +21,6 @@ resource "google_service_account" "cloud_run_sa" {
   display_name = "Cloud Run SA for ${var.app_name}"
   description  = "Service account for Cloud Run frontend service"
 
-  depends_on = [google_project_service.required_apis]
 
   lifecycle {
     prevent_destroy = false
@@ -47,7 +41,6 @@ resource "google_artifact_registry_repository" "docker_repo" {
 
   labels = var.labels
 
-  depends_on = [google_project_service.required_apis]
 
   lifecycle {
     prevent_destroy = false
@@ -100,9 +93,6 @@ resource "google_cloud_run_v2_service" "main" {
     }
   }
 
-  depends_on = [
-    google_project_service.required_apis,
-  ]
 
   lifecycle {
     ignore_changes = [
