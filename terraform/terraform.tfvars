@@ -21,6 +21,7 @@ import_existing_resources = true
 
 # Cloud Run Configuration
 cloud_run_service_name  = "travel-frontend"
+service_account_email   = "travel-frontend-sa@graphite-plane-474510-s9.iam.gserviceaccount.com"
 cloud_run_cpu           = "1"
 cloud_run_memory        = "512Mi"
 cloud_run_max_instances = 10

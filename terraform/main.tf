@@ -6,7 +6,7 @@ resource "random_id" "suffix" {
 # Local variables for resource naming
 locals {
   suffix = var.resource_suffix != "" ? var.resource_suffix : random_id.suffix.hex
-  service_account_name = "${var.app_name}-sa-${local.suffix}"
+  service_account_name = "${var.app_name}-sa"  # Fixed name without suffix
 }
 
 # Note: Required Google Cloud APIs must be enabled manually or by an admin:
@@ -48,7 +48,7 @@ resource "google_cloud_run_v2_service" "main" {
   ingress  = "INGRESS_TRAFFIC_ALL"
 
   template {
-    service_account = data.google_service_account.cloud_run_sa.email
+    service_account = var.service_account_email
 
     scaling {
       min_instance_count = var.cloud_run_min_instances
