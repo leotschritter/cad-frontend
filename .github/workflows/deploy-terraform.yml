@@ -45,11 +45,6 @@ jobs:
           chmod +x smart-import.sh
           bash smart-import.sh
 
-      - name: Run Grant Permissions Script
-        run: |
-          chmod +x grant-permissions.sh
-          bash grant-permissions.sh
-
       - name: Terraform Plan
         run: terraform plan -out=tfplan
 
