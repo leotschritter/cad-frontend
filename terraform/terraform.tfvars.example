@@ -1,0 +1,59 @@
+# Example Terraform Variables File for Frontend
+# Copy this file to terraform.tfvars and fill in your values
+
+# Required Variables
+project_id = "your-gcp-project-id"
+
+# Optional Variables (defaults are provided)
+region                  = "europe-west1"
+zone                    = "europe-west1-b"
+app_name                = "travel-frontend"
+app_version             = "latest"
+environment             = "prod"
+
+# Resource Management Strategy
+use_random_suffix       = false              # Set to true for unique names, false to use existing
+resource_suffix         = ""                 # Or provide custom suffix (e.g., "dev", "prod")
+import_existing_resources = true             # Use existing resources if they exist (recommended)
+
+# Cloud Run Configuration
+cloud_run_service_name  = "travel-frontend"
+cloud_run_cpu           = "1"                # Options: "1", "2", "4"
+cloud_run_memory        = "512Mi"            # Options: "256Mi", "512Mi", "1Gi", "2Gi"
+cloud_run_max_instances = 10
+cloud_run_min_instances = 0
+cloud_run_timeout       = 300
+
+# Artifact Registry Configuration
+artifact_registry_name  = "docker-repo"
+
+# Docker Image Configuration
+# Option 1: Use GitHub Container Registry (recommended)
+create_artifact_registry = false
+docker_image_url = "ghcr.io/YOUR-GITHUB-USERNAME/travel-frontend:latest"
+
+# Option 2: Use Docker Hub
+# create_artifact_registry = false
+# docker_image_url = "docker.io/YOUR-USERNAME/travel-frontend:latest"
+
+# Option 3: Use GCP Artifact Registry
+# create_artifact_registry = true
+# docker_image_url = ""
+
+# Backend API Configuration
+backend_url = "https://api.tripico.fun"
+
+# Domain Configuration (optional)
+domain_name             = ""                 # e.g., "app.tripico.fun"
+
+# Networking Configuration
+allow_unauthenticated   = true
+
+# Labels
+labels = {
+  app         = "travel-frontend"
+  managed-by  = "terraform"
+  environment = "prod"
+  team        = "cad-team"
+}
+
