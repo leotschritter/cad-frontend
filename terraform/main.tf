@@ -16,17 +16,30 @@ locals {
 # If not enabled, run: gcloud services enable run.googleapis.com artifactregistry.googleapis.com
 
 # Service Account for Cloud Run
+# Only create if it doesn't exist - otherwise use existing one
 resource "google_service_account" "cloud_run_sa" {
+  count = var.create_service_account ? 1 : 0
+
   account_id   = local.service_account_name
   display_name = "Cloud Run SA for ${var.app_name}"
   description  = "Service account for Cloud Run frontend service"
-
 
   lifecycle {
     prevent_destroy = false
     # If resource exists, import it instead of failing
     # Run: terraform import google_service_account.cloud_run_sa projects/PROJECT_ID/serviceAccounts/SERVICE_ACCOUNT_EMAIL
   }
+}
+
+# Data source to reference existing service account if not creating
+data "google_service_account" "existing_sa" {
+  count      = var.create_service_account ? 0 : (var.existing_service_account_email != "" ? 0 : 1)
+  account_id = local.service_account_name
+}
+
+# Local to get the service account email regardless of whether we created it or use existing
+locals {
+  service_account_email = var.create_service_account ? google_service_account.cloud_run_sa[0].email : (var.existing_service_account_email != "" ? var.existing_service_account_email : data.google_service_account.existing_sa[0].email)
 }
 
 
@@ -57,7 +70,7 @@ resource "google_cloud_run_v2_service" "main" {
   ingress  = "INGRESS_TRAFFIC_ALL"
 
   template {
-    service_account = google_service_account.cloud_run_sa.email
+    service_account = local.service_account_email
 
     scaling {
       min_instance_count = var.cloud_run_min_instances

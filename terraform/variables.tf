@@ -54,6 +54,18 @@ variable "import_existing_resources" {
   default     = true
 }
 
+variable "create_service_account" {
+  description = "Whether to create a new service account (false = use existing)"
+  type        = bool
+  default     = false
+}
+
+variable "existing_service_account_email" {
+  description = "Email of existing service account to use (when create_service_account = false)"
+  type        = string
+  default     = ""
+}
+
 # Cloud Run Configuration
 variable "cloud_run_service_name" {
   description = "Name of the Cloud Run service"
