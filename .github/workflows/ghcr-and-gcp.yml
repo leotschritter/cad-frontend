@@ -2,9 +2,7 @@ name: docker-ghcr-and-gcp
 
 on:
   push:
-    branches:
-      - main
-      - feature/exercise5-leo
+    branches: [ main ]
     tags: [ 'v*.*.*' ]
   workflow_dispatch:
 
