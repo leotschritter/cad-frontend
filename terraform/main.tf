@@ -5,8 +5,8 @@ resource "random_id" "suffix" {
 
 # Local variables for resource naming
 locals {
-  suffix = var.resource_suffix != "" ? var.resource_suffix : (var.use_random_suffix ? random_id.suffix.hex : "")
-  service_account_name = var.use_random_suffix ? "${var.app_name}-sa-${local.suffix}" : "${var.app_name}-sa"
+  suffix = var.resource_suffix != "" ? var.resource_suffix : random_id.suffix.hex
+  service_account_name = "${var.app_name}-sa-${local.suffix}"
 }
 
 # Note: Required Google Cloud APIs must be enabled manually or by an admin:
@@ -24,6 +24,13 @@ resource "google_service_account" "cloud_run_sa" {
   lifecycle {
     prevent_destroy = false
   }
+}
+
+# IAM Role Bindings for the Cloud Run service account
+resource "google_project_iam_member" "cloud_run_invoker" {
+  project = var.project_id
+  role    = "roles/run.invoker"
+  member  = "serviceAccount:${google_service_account.cloud_run_sa.email}"
 }
 
 
