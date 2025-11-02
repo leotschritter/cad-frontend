@@ -15,13 +15,8 @@ environment             = "prod"
 use_random_suffix       = false
 resource_suffix         = ""
 import_existing_resources = true
-create_service_account  = false  # Use existing service account (avoids IAM permission issues)
-create_cloud_run_service = false  # Update existing Cloud Run service (avoids permission issues)
-
-# Specify your existing service account email
-# Example: existing_service_account_email = "your-sa@graphite-plane-474510-s9.iam.gserviceaccount.com"
-# Leave empty to auto-detect based on app_name (travel-frontend-sa)
-existing_service_account_email = "travel-frontend-sa@graphite-plane-474510-s9.iam.gserviceaccount.com"
+create_service_account  = true   # Create service account with proper permissions
+create_cloud_run_service = true  # Create Cloud Run service
 
 # Cloud Run Configuration
 cloud_run_service_name  = "travel-frontend"
