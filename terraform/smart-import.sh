@@ -21,23 +21,8 @@ cat > imports.tf << 'EOF'
 
 EOF
 
-# Check Service Account
-echo "[1/3] Checking Service Account..."
-if gcloud iam service-accounts describe travel-frontend-sa@${PROJECT_ID}.iam.gserviceaccount.com >/dev/null 2>&1; then
-    echo "  ✅ Exists - Will import"
-    cat >> imports.tf << EOF
-import {
-  to = google_service_account.cloud_run_sa
-  id = "projects/${PROJECT_ID}/serviceAccounts/travel-frontend-sa@${PROJECT_ID}.iam.gserviceaccount.com"
-}
-
-EOF
-else
-    echo "  ℹ️  Doesn't exist - Will create"
-fi
-
 # Check Artifact Registry Repository (only if managed by this Terraform)
-echo "[2/3] Checking Artifact Registry Repository..."
+echo "[1/2] Checking Artifact Registry Repository..."
 if grep -q "create_artifact_registry.*=.*true" terraform.tfvars 2>/dev/null; then
     if gcloud artifacts repositories describe docker-repo --location=${REGION} --project=${PROJECT_ID} >/dev/null 2>&1; then
         echo "  ✅ Exists - Will import"
@@ -56,7 +41,7 @@ else
 fi
 
 # Check Cloud Run Service
-echo "[3/3] Checking Cloud Run Service..."
+echo "[2/2] Checking Cloud Run Service..."
 if gcloud run services describe travel-frontend --region=${REGION} --project=${PROJECT_ID} >/dev/null 2>&1; then
     echo "  ✅ Exists - Will import"
     cat >> imports.tf << EOF
