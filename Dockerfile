@@ -7,8 +7,8 @@ RUN npm ci --no-audit --no-fund
 
 COPY . .
 
-ARG VITE_API_URL=http://localhost:8080
-ENV VITE_API_URL=${VITE_API_BASE_URL}
+ARG VITE_API_BASE_URL=http://localhost:8080
+ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
 
 ARG VITE_BASE=/
 ENV BASE_URL=${VITE_BASE}
