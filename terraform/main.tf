@@ -15,22 +15,9 @@ locals {
 # These are typically already enabled in existing projects.
 # If not enabled, run: gcloud services enable run.googleapis.com artifactregistry.googleapis.com
 
-# Service Account for Cloud Run
-resource "google_service_account" "cloud_run_sa" {
-  account_id   = local.service_account_name
-  display_name = "Cloud Run SA for ${var.app_name}"
-  description  = "Service account for Cloud Run frontend service"
-
-  lifecycle {
-    prevent_destroy = false
-  }
-}
-
-# IAM Role Bindings for the Cloud Run service account
-resource "google_project_iam_member" "cloud_run_invoker" {
-  project = var.project_id
-  role    = "roles/run.invoker"
-  member  = "serviceAccount:${google_service_account.cloud_run_sa.email}"
+# Data source to reference existing service account (created manually or by other means)
+data "google_service_account" "cloud_run_sa" {
+  account_id = local.service_account_name
 }
 
 
@@ -61,7 +48,7 @@ resource "google_cloud_run_v2_service" "main" {
   ingress  = "INGRESS_TRAFFIC_ALL"
 
   template {
-    service_account = google_service_account.cloud_run_sa.email
+    service_account = data.google_service_account.cloud_run_sa.email
 
     scaling {
       min_instance_count = var.cloud_run_min_instances

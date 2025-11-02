@@ -15,8 +15,9 @@ environment             = "prod"
 use_random_suffix       = false
 resource_suffix         = ""
 import_existing_resources = true
-create_service_account  = true   # Create service account with proper permissions
-create_cloud_run_service = true  # Create Cloud Run service
+
+# Note: Service account "travel-frontend-sa" must already exist
+# Cloud Run service will be created or updated
 
 # Cloud Run Configuration
 cloud_run_service_name  = "travel-frontend"
