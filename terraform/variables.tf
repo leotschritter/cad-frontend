@@ -66,6 +66,12 @@ variable "existing_service_account_email" {
   default     = ""
 }
 
+variable "create_cloud_run_service" {
+  description = "Whether to create Cloud Run service (false = update existing)"
+  type        = bool
+  default     = false
+}
+
 # Cloud Run Configuration
 variable "cloud_run_service_name" {
   description = "Name of the Cloud Run service"

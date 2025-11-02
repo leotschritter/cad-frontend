@@ -61,17 +61,32 @@ fi
 
 # Check Cloud Run Service
 echo "[3/3] Checking Cloud Run Service..."
-if gcloud run services describe travel-frontend --region=${REGION} --project=${PROJECT_ID} >/dev/null 2>&1; then
-    echo "  ✅ Exists - Will import"
-    cat >> imports.tf << EOF
+if grep -q "create_cloud_run_service.*=.*false" terraform.tfvars 2>/dev/null; then
+    if gcloud run services describe travel-frontend --region=${REGION} --project=${PROJECT_ID} >/dev/null 2>&1; then
+        echo "  ✅ Exists - Will import for update"
+        cat >> imports.tf << EOF
 import {
   to = google_cloud_run_v2_service.main
   id = "projects/${PROJECT_ID}/locations/${REGION}/services/travel-frontend"
 }
 
 EOF
+    else
+        echo "  ⚠️  Service doesn't exist - set create_cloud_run_service=true to create"
+    fi
 else
-    echo "  ℹ️  Doesn't exist - Will create"
+    if gcloud run services describe travel-frontend --region=${REGION} --project=${PROJECT_ID} >/dev/null 2>&1; then
+        echo "  ✅ Exists - Will import"
+        cat >> imports.tf << EOF
+import {
+  to = google_cloud_run_v2_service.main
+  id = "projects/${PROJECT_ID}/locations/${REGION}/services/travel-frontend"
+}
+
+EOF
+    else
+        echo "  ℹ️  Doesn't exist - Will create"
+    fi
 fi
 
 echo ""
