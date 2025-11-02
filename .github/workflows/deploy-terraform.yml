@@ -46,10 +46,10 @@ jobs:
           bash smart-import.sh
 
       - name: Terraform Plan
-        run: terraform plan -out=tfplan
+        run: terraform plan
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve tfplan
+        run: terraform apply -auto-approve
 
       - name: Output Results
         if: always()
