@@ -40,12 +40,12 @@ output "docker_image_url" {
 # Service Account Outputs
 output "service_account_email" {
   description = "The email of the Cloud Run service account"
-  value       = google_service_account.cloud_run_sa.email
+  value       = local.service_account_email
 }
 
 output "service_account_name" {
   description = "The name of the Cloud Run service account"
-  value       = google_service_account.cloud_run_sa.name
+  value       = local.service_account_name
 }
 
 # Resource naming outputs

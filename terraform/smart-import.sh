@@ -23,17 +23,21 @@ EOF
 
 # Check Service Account
 echo "[1/3] Checking Service Account..."
-if gcloud iam service-accounts describe travel-frontend-sa@${PROJECT_ID}.iam.gserviceaccount.com >/dev/null 2>&1; then
-    echo "  ✅ Exists - Will import"
-    cat >> imports.tf << EOF
+if grep -q "create_service_account.*=.*true" terraform.tfvars 2>/dev/null; then
+    if gcloud iam service-accounts describe travel-frontend-sa@${PROJECT_ID}.iam.gserviceaccount.com >/dev/null 2>&1; then
+        echo "  ✅ Exists - Will import"
+        cat >> imports.tf << EOF
 import {
-  to = google_service_account.cloud_run_sa
+  to = google_service_account.cloud_run_sa[0]
   id = "projects/${PROJECT_ID}/serviceAccounts/travel-frontend-sa@${PROJECT_ID}.iam.gserviceaccount.com"
 }
 
 EOF
+    else
+        echo "  ℹ️  Doesn't exist - Will create"
+    fi
 else
-    echo "  ℹ️  Doesn't exist - Will create"
+    echo "  ⏭️  Skipped (create_service_account=false, using existing service account)"
 fi
 
 # Check Artifact Registry Repository (only if managed by this Terraform)
