@@ -29,5 +29,5 @@ terraform.rc
 *.tfplan
 
 # Ignore lock files (optional - some teams prefer to commit this)
-# .terraform.lock.hcl
+.terraform.lock.hcl
 

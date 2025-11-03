@@ -38,7 +38,16 @@ export const useLocationStore = defineStore('location', {
       description?: string,
       fromDate?: Date,
       toDate?: Date,
-      files?: Array<Blob | File>
+      files?: Array<Blob | File>,
+      transportType?: string,
+      transportDuration?: number,
+      transportDistance?: number,
+      accommodationName?: string,
+      accommodationPricePerNight?: number,
+      accommodationRating?: number,
+      accommodationNotes?: string,
+      accommodationImageUrl?: string,
+      bookingPageUrl?: string
     }): Promise<LocationDto | null> {
       try {
         // Ensure files are properly converted to Blob array if needed
@@ -48,7 +57,16 @@ export const useLocationStore = defineStore('location', {
           description: payload.description,
           fromDate: payload.fromDate ? formatDate(payload.fromDate) : undefined,
           toDate: payload.toDate ? formatDate(payload.toDate) : undefined,
-          files: payload.files ? payload.files.map(f => f as Blob) : undefined
+          files: payload.files ? payload.files.map(f => f as Blob) : undefined,
+          transportType: payload.transportType,
+          transportDuration: payload.transportDuration,
+          transportDistance: payload.transportDistance,
+          accommodationName: payload.accommodationName,
+          accommodationPricePerNight: payload.accommodationPricePerNight,
+          accommodationRating: payload.accommodationRating,
+          accommodationNotes: payload.accommodationNotes,
+          accommodationImageUrl: payload.accommodationImageUrl,
+          bookingPageUrl: payload.bookingPageUrl
         }
 
         const location = await locationApi.locationItineraryItineraryIdPost(requestPayload)
