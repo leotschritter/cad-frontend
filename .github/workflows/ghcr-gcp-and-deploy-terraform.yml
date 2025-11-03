@@ -57,9 +57,11 @@ jobs:
             ghcr.io/${{ github.repository }}:${{ github.sha }}
             europe-west1-docker.pkg.dev/graphite-plane-474510-s9/docker-repo/travel-frontend:latest
             europe-west1-docker.pkg.dev/graphite-plane-474510-s9/docker-repo/travel-frontend:${{ github.sha }}
+
       - name: Export image reference
         id: export_image
         run: echo "frontend_image=europe-west1-docker.pkg.dev/graphite-plane-474510-s9/docker-repo/travel-frontend:${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+
       - name: Export app version
         id: export_app_version
         run: echo "app_version=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
