@@ -13,6 +13,21 @@
  */
 
 import { mapValues } from '../runtime';
+import type { TransportDto } from './TransportDto';
+import {
+    TransportDtoFromJSON,
+    TransportDtoFromJSONTyped,
+    TransportDtoToJSON,
+    TransportDtoToJSONTyped,
+} from './TransportDto';
+import type { AccommodationDto } from './AccommodationDto';
+import {
+    AccommodationDtoFromJSON,
+    AccommodationDtoFromJSONTyped,
+    AccommodationDtoToJSON,
+    AccommodationDtoToJSONTyped,
+} from './AccommodationDto';
+
 /**
  * 
  * @export
@@ -55,6 +70,18 @@ export interface LocationDto {
      * @memberof LocationDto
      */
     imageUrls?: Array<string>;
+    /**
+     * 
+     * @type {TransportDto}
+     * @memberof LocationDto
+     */
+    transportDto?: TransportDto;
+    /**
+     * 
+     * @type {AccommodationDto}
+     * @memberof LocationDto
+     */
+    accommodationDto?: AccommodationDto;
 }
 
 /**
@@ -80,6 +107,8 @@ export function LocationDtoFromJSONTyped(json: any, ignoreDiscriminator: boolean
         'fromDate': json['fromDate'] == null ? undefined : (new Date(json['fromDate'])),
         'toDate': json['toDate'] == null ? undefined : (new Date(json['toDate'])),
         'imageUrls': json['imageUrls'] == null ? undefined : json['imageUrls'],
+        'transportDto': json['transportDto'] == null ? undefined : TransportDtoFromJSON(json['transportDto']),
+        'accommodationDto': json['accommodationDto'] == null ? undefined : AccommodationDtoFromJSON(json['accommodationDto']),
     };
 }
 
@@ -100,6 +129,8 @@ export function LocationDtoToJSONTyped(value?: LocationDto | null, ignoreDiscrim
         'fromDate': value['fromDate'] == null ? undefined : ((value['fromDate']).toISOString().substring(0,10)),
         'toDate': value['toDate'] == null ? undefined : ((value['toDate']).toISOString().substring(0,10)),
         'imageUrls': value['imageUrls'],
+        'transportDto': TransportDtoToJSON(value['transportDto']),
+        'accommodationDto': AccommodationDtoToJSON(value['accommodationDto']),
     };
 }
 

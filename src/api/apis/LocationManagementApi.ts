@@ -36,9 +36,17 @@ export interface LocationItineraryItineraryIdPostRequest {
     itineraryId: number;
     name?: string;
     description?: string;
-    fromDate?: string;
-    toDate?: string;
+    fromDate?: Date;
+    toDate?: Date;
     files?: Array<Blob>;
+    transportType?: string;
+    transportDuration?: number;
+    transportDistance?: number;
+    accommodationName?: string;
+    accommodationPricePerNight?: number;
+    accommodationRating?: number;
+    accommodationNotes?: string;
+    accommodationImageUrl?: string;
 }
 
 export interface LocationLocationIdDeleteRequest {
@@ -65,7 +73,7 @@ export interface LocationLocationIdImagesPostRequest {
 export class LocationManagementApi extends runtime.BaseAPI {
 
     /**
-     * Retrieves all locations for a specific itinerary.
+     * Retrieves all locations for a specific itinerary, including associated transport and accommodation information.
      * Get locations for itinerary
      */
     async locationItineraryItineraryIdGetRaw(requestParameters: LocationItineraryItineraryIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<LocationDto>>> {
@@ -95,7 +103,7 @@ export class LocationManagementApi extends runtime.BaseAPI {
     }
 
     /**
-     * Retrieves all locations for a specific itinerary.
+     * Retrieves all locations for a specific itinerary, including associated transport and accommodation information.
      * Get locations for itinerary
      */
     async locationItineraryItineraryIdGet(requestParameters: LocationItineraryItineraryIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<LocationDto>> {
@@ -155,6 +163,38 @@ export class LocationManagementApi extends runtime.BaseAPI {
             requestParameters['files'].forEach((element) => {
                 formParams.append('files', element as any);
             })
+        }
+
+        if (requestParameters['transportType'] != null) {
+            formParams.append('transportType', requestParameters['transportType'] as any);
+        }
+
+        if (requestParameters['transportDuration'] != null) {
+            formParams.append('transportDuration', requestParameters['transportDuration'] as any);
+        }
+
+        if (requestParameters['transportDistance'] != null) {
+            formParams.append('transportDistance', requestParameters['transportDistance'] as any);
+        }
+
+        if (requestParameters['accommodationName'] != null) {
+            formParams.append('accommodationName', requestParameters['accommodationName'] as any);
+        }
+
+        if (requestParameters['accommodationPricePerNight'] != null) {
+            formParams.append('accommodationPricePerNight', requestParameters['accommodationPricePerNight'] as any);
+        }
+
+        if (requestParameters['accommodationRating'] != null) {
+            formParams.append('accommodationRating', requestParameters['accommodationRating'] as any);
+        }
+
+        if (requestParameters['accommodationNotes'] != null) {
+            formParams.append('accommodationNotes', requestParameters['accommodationNotes'] as any);
+        }
+
+        if (requestParameters['accommodationImageUrl'] != null) {
+            formParams.append('accommodationImageUrl', requestParameters['accommodationImageUrl'] as any);
         }
 
 
