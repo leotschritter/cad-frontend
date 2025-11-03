@@ -56,7 +56,7 @@ resource "google_cloud_run_v2_service" "main" {
     }
 
     containers {
-      image = var.docker_image_url != "" ? var.docker_image_url : "${var.region}-docker.pkg.dev/${var.project_id}/${var.artifact_registry_name}/${var.app_name}:${var.app_version}"
+      image = var.frontend_image
 
       resources {
         limits = {
