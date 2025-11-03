@@ -165,3 +165,8 @@ variable "service_account_email" {
   description = "Service account email for Cloud Run"
   type        = string
 }
+
+variable "frontend_image" {
+  type    = string
+  default = "europe-west1-docker.pkg.dev/graphite-plane-474510-s9/docker-repo/travel-frontend:latest"
+}
