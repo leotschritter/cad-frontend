@@ -129,7 +129,7 @@
               <div class="text-subtitle-2 mb-2">Transport from previous stop</div>
               <div class="d-flex flex-column flex-sm-row gap-4">
                 <div v-if="element.transport.mode" class="flex-1">
-                  <div class="text-caption text-grey-darken-1 mb-1">Mode</div>
+                  <div class="text-caption text-grey-darken-1 mb-1">Transport Type</div>
                   <div class="text-body-1">
                     <v-icon start :icon="transportIcon(element.transport.mode)" />
                     {{ prettyMode(element.transport.mode) }}
@@ -137,11 +137,11 @@
                 </div>
                 <div v-if="element.transport.duration" class="flex-1">
                   <div class="text-caption text-grey-darken-1 mb-1">Duration</div>
-                  <div class="text-body-1">{{ element.transport.duration }}</div>
+                  <div class="text-body-1">{{ element.transport.duration }} min</div>
                 </div>
                 <div v-if="element.transport.distance" class="flex-1">
                   <div class="text-caption text-grey-darken-1 mb-1">Distance</div>
-                  <div class="text-body-1">{{ element.transport.distance }}</div>
+                  <div class="text-body-1">{{ element.transport.distance }} km</div>
                 </div>
               </div>
             </div>
@@ -179,28 +179,24 @@
                           class="ml-3"
                           variant="tonal"
                       >
-                        {{ element.accommodation.pricePerNight }}/night
+                        {{ element.accommodation.pricePerNight }}€/night
                       </v-chip>
                     </div>
 
-                    <div
-                        class="text-caption text-grey-darken-1 mt-1"
-                        v-if="element.accommodation.address"
-                    >
-                      <v-icon start size="16" icon="mdi-map-marker-outline" />
-                      {{ element.accommodation.address }}
-                    </div>
 
-                    <div class="mt-2 d-flex align-center" v-if="element.accommodation.rating">
+                    <div class="mt-2 d-flex align-center">
                       <v-rating
-                          :model-value="element.accommodation.rating"
+                          :model-value="element.accommodation.rating ?? 0"
                           density="comfortable"
                           size="20"
                           half-increments
                           readonly
                       />
-                      <span class="text-caption ml-2">
-                        {{ Number(element.accommodation.rating).toFixed(1) }}
+                      <span
+                          class="text-caption ml-2"
+                          v-if="element.accommodation.rating != null && element.accommodation.rating > 0"
+                      >
+                        {{ element.accommodation.rating.toFixed(1) }}
                       </span>
                     </div>
 

@@ -100,8 +100,19 @@ async function loadLocations() {
       address: null,
       shortDescription: loc.description || null,
       images: loc.imageUrls || [],
-      transport: { mode: null, duration: null, distance: null },
-      accommodation: null
+      transport: {
+        mode: loc.transportDto?.transportType || null,
+        duration: loc.transportDto?.duration ?? null,
+        distance: loc.transportDto?.distance ?? null
+      },
+      accommodation: loc.accommodationDto ? {
+        name: loc.accommodationDto.name || '',
+        url: loc.accommodationDto.bookingPageUrl || undefined,
+        image: loc.accommodationDto.accommodationImageUrl || undefined,
+        pricePerNight: loc.accommodationDto.pricePerNight ? `${loc.accommodationDto.pricePerNight}` : undefined,
+        rating: loc.accommodationDto.rating ?? undefined,
+        notes: loc.accommodationDto.notes || undefined
+      } : null
     }))
 
     // After loading, geocode all locations to get their coordinates for the map
