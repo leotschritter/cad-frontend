@@ -1,9 +1,8 @@
-<!-- src/components/LoginForm.vue -->
+<!-- src/components/UserLogin.vue -->
 <script lang="ts">
 import { defineComponent } from 'vue'
-import { useUserStore } from "@/stores/user.ts";
 import { useAuthStore } from "@/stores/auth.ts";
-import type { UserDto } from "@/api";
+import { getFirebaseErrorMessage } from '@/utils/firebaseErrors';
 
 export default defineComponent({
   name: 'UserLogin',
@@ -15,9 +14,10 @@ export default defineComponent({
       errorMsg: null as string | null,
       form: {
         email: '',
+        password: ''
       },
-      userStore: (null as any),
       authStore: (null as any),
+      showPassword: false
     }
   },
 
@@ -35,15 +35,16 @@ export default defineComponent({
       this.loading = true
 
       try {
-        const user: UserDto | null = await this.userStore.userLogin(this.form.email)
-        if (user) {
-          this.authStore.login(user)
-          this.$router.push({ name: 'home' })
+        await this.authStore.login(this.form.email, this.form.password)
+        
+        // Check if email is verified
+        if (!this.authStore.isEmailVerified) {
+          this.$router.push({ name: 'verify-email' })
         } else {
-          this.errorMsg = 'User not found'
+          this.$router.push({ name: 'home' })
         }
       } catch (err: any) {
-        this.errorMsg = err?.message ?? 'Login failed'
+        this.errorMsg = getFirebaseErrorMessage(err)
       } finally {
         this.loading = false
       }
@@ -57,7 +58,6 @@ export default defineComponent({
     })
   },
   created() {
-    this.userStore = useUserStore()
     this.authStore = useAuthStore()
   }
 })
@@ -93,6 +93,16 @@ export default defineComponent({
                   type="email"
                   :rules="[required, emailRule]"
                   autocomplete="email"
+              />
+
+              <v-text-field
+                  v-model="form.password"
+                  label="Password"
+                  :type="showPassword ? 'text' : 'password'"
+                  :rules="[required]"
+                  autocomplete="current-password"
+                  :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
+                  @click:append-inner="showPassword = !showPassword"
               />
 
               <div class="d-flex align-center justify-space-between mt-2">

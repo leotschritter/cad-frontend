@@ -1,5 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
+export * from './AuthenticatedUser';
 export * from './CommentDto';
 export * from './CommentRequest';
 export * from './ItineraryDto';

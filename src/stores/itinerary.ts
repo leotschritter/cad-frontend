@@ -9,21 +9,21 @@ export const useItineraryStore = defineStore('itinerary', {
   }),
 
   actions: {
-    async loadItineraries(email: string) {
+    async loadItineraries() {
       const itineraryApi = getApi('ItineraryManagementApi')
       try {
-        this.itineraries = await itineraryApi.itineraryGetEmailGet({ email })
+        this.itineraries = await itineraryApi.itineraryGetGet()
       } catch (error) {
         console.error('Failed to load itineraries:', error)
       }
     },
 
-    async addNewItinerary(email: string, itineraryDto: ItineraryDto) {
+    async addNewItinerary(itineraryDto: ItineraryDto) {
       const itineraryApi = getApi('ItineraryManagementApi')
       try {
-         await itineraryApi.itineraryCreateEmailPost({email: email, itineraryDto: itineraryDto})
+         await itineraryApi.itineraryCreatePost({ itineraryDto: itineraryDto })
          // Reload all itineraries to get the newly created one with its backend-assigned ID
-         await this.loadItineraries(email)
+         await this.loadItineraries()
        } catch (error) {
          console.error('Failed to add itinerary:', error)
        }

@@ -36,8 +36,8 @@ export interface LocationItineraryItineraryIdPostRequest {
     itineraryId: number;
     name?: string;
     description?: string;
-    fromDate?: string;
-    toDate?: string;
+    fromDate?: Date;
+    toDate?: Date;
     files?: Array<Blob>;
 }
 
@@ -65,7 +65,7 @@ export interface LocationLocationIdImagesPostRequest {
 export class LocationManagementApi extends runtime.BaseAPI {
 
     /**
-     * Retrieves all locations for a specific itinerary.
+     * Retrieves all locations for a specific itinerary. Requires authentication.
      * Get locations for itinerary
      */
     async locationItineraryItineraryIdGetRaw(requestParameters: LocationItineraryItineraryIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<LocationDto>>> {
@@ -80,6 +80,14 @@ export class LocationManagementApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("BearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
 
         let urlPath = `/location/itinerary/{itineraryId}`;
         urlPath = urlPath.replace(`{${"itineraryId"}}`, encodeURIComponent(String(requestParameters['itineraryId'])));
@@ -95,7 +103,7 @@ export class LocationManagementApi extends runtime.BaseAPI {
     }
 
     /**
-     * Retrieves all locations for a specific itinerary.
+     * Retrieves all locations for a specific itinerary. Requires authentication.
      * Get locations for itinerary
      */
     async locationItineraryItineraryIdGet(requestParameters: LocationItineraryItineraryIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<LocationDto>> {
@@ -104,7 +112,7 @@ export class LocationManagementApi extends runtime.BaseAPI {
     }
 
     /**
-     * Adds a new location to an existing itinerary. Upload images directly as multipart form data (optional). Images will be stored in Google Cloud Storage.
+     * Adds a new location to an existing itinerary. Upload images directly as multipart form data (optional). Images will be stored in Google Cloud Storage. Requires authentication.
      * Add location to itinerary
      */
     async locationItineraryItineraryIdPostRaw(requestParameters: LocationItineraryItineraryIdPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<LocationDto>> {
@@ -119,6 +127,14 @@ export class LocationManagementApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("BearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
         const consumes: runtime.Consume[] = [
             { contentType: 'multipart/form-data' },
         ];
@@ -173,7 +189,7 @@ export class LocationManagementApi extends runtime.BaseAPI {
     }
 
     /**
-     * Adds a new location to an existing itinerary. Upload images directly as multipart form data (optional). Images will be stored in Google Cloud Storage.
+     * Adds a new location to an existing itinerary. Upload images directly as multipart form data (optional). Images will be stored in Google Cloud Storage. Requires authentication.
      * Add location to itinerary
      */
     async locationItineraryItineraryIdPost(requestParameters: LocationItineraryItineraryIdPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<LocationDto> {
@@ -182,7 +198,7 @@ export class LocationManagementApi extends runtime.BaseAPI {
     }
 
     /**
-     * Deletes a location from an itinerary.
+     * Deletes a location from an itinerary. Requires authentication.
      * Delete location
      */
     async locationLocationIdDeleteRaw(requestParameters: LocationLocationIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MessageResponseDto2>> {
@@ -197,6 +213,14 @@ export class LocationManagementApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("BearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
 
         let urlPath = `/location/{locationId}`;
         urlPath = urlPath.replace(`{${"locationId"}}`, encodeURIComponent(String(requestParameters['locationId'])));
@@ -212,7 +236,7 @@ export class LocationManagementApi extends runtime.BaseAPI {
     }
 
     /**
-     * Deletes a location from an itinerary.
+     * Deletes a location from an itinerary. Requires authentication.
      * Delete location
      */
     async locationLocationIdDelete(requestParameters: LocationLocationIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MessageResponseDto2> {
@@ -221,7 +245,7 @@ export class LocationManagementApi extends runtime.BaseAPI {
     }
 
     /**
-     * Retrieves a specific location by its ID.
+     * Retrieves a specific location by its ID. Requires authentication.
      * Get location by ID
      */
     async locationLocationIdGetRaw(requestParameters: LocationLocationIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<LocationDto>> {
@@ -236,6 +260,14 @@ export class LocationManagementApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("BearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
 
         let urlPath = `/location/{locationId}`;
         urlPath = urlPath.replace(`{${"locationId"}}`, encodeURIComponent(String(requestParameters['locationId'])));
@@ -251,7 +283,7 @@ export class LocationManagementApi extends runtime.BaseAPI {
     }
 
     /**
-     * Retrieves a specific location by its ID.
+     * Retrieves a specific location by its ID. Requires authentication.
      * Get location by ID
      */
     async locationLocationIdGet(requestParameters: LocationLocationIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<LocationDto> {
@@ -260,7 +292,7 @@ export class LocationManagementApi extends runtime.BaseAPI {
     }
 
     /**
-     * Deletes a specific image from a location by its URL.
+     * Deletes a specific image from a location by its URL. Requires authentication.
      * Delete image from location
      */
     async locationLocationIdImagesDeleteRaw(requestParameters: LocationLocationIdImagesDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MessageResponseDto2>> {
@@ -286,6 +318,14 @@ export class LocationManagementApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("BearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
 
         let urlPath = `/location/{locationId}/images`;
         urlPath = urlPath.replace(`{${"locationId"}}`, encodeURIComponent(String(requestParameters['locationId'])));
@@ -301,7 +341,7 @@ export class LocationManagementApi extends runtime.BaseAPI {
     }
 
     /**
-     * Deletes a specific image from a location by its URL.
+     * Deletes a specific image from a location by its URL. Requires authentication.
      * Delete image from location
      */
     async locationLocationIdImagesDelete(requestParameters: LocationLocationIdImagesDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MessageResponseDto2> {
@@ -310,7 +350,7 @@ export class LocationManagementApi extends runtime.BaseAPI {
     }
 
     /**
-     * Uploads one or more images to a location. Images will be stored in Google Cloud Storage.
+     * Uploads one or more images to a location. Images will be stored in Google Cloud Storage. Requires authentication.
      * Upload images to location
      */
     async locationLocationIdImagesPostRaw(requestParameters: LocationLocationIdImagesPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<LocationImageUploadResponseDto>> {
@@ -325,6 +365,14 @@ export class LocationManagementApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("BearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
         const consumes: runtime.Consume[] = [
             { contentType: 'multipart/form-data' },
         ];
@@ -363,7 +411,7 @@ export class LocationManagementApi extends runtime.BaseAPI {
     }
 
     /**
-     * Uploads one or more images to a location. Images will be stored in Google Cloud Storage.
+     * Uploads one or more images to a location. Images will be stored in Google Cloud Storage. Requires authentication.
      * Upload images to location
      */
     async locationLocationIdImagesPost(requestParameters: LocationLocationIdImagesPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<LocationImageUploadResponseDto> {

@@ -60,7 +60,8 @@ export default defineComponent({
     this.authStore = useAuthStore();
 
     this.itineraryStore = useItineraryStore();
-    this.itineraryStore.loadItineraries(this.authStore.user.email);
+    this.itineraryStore.loadItineraries();
+
   },
   watch: {
     'itineraryStore.itineraries': {
@@ -107,7 +108,7 @@ export default defineComponent({
     },
     async close(action: 'submit' | 'cancel' | 'closeDetails' | 'submitLocations' | 'cancelLocations' | 'cancelReadonlyLocations') {
       if (action === 'submit') {
-        this.itineraryStore.addNewItinerary(this.authStore.user.email, this.newItinerary as ItineraryDto);
+        this.itineraryStore.addNewItinerary(this.newItinerary as ItineraryDto);
         this.clearItinerary();
         this.isCreate = false;
       } else if (action === 'cancel') {

@@ -28,17 +28,12 @@ import {
     UserDtoToJSON,
 } from '../models/index';
 
-export interface UserEmailProfileImageGetRequest {
-    email: string;
-}
-
-export interface UserEmailProfileImagePostRequest {
-    email: string;
-    file?: Blob;
-}
-
 export interface UserGetGetRequest {
     email: string;
+}
+
+export interface UserProfileImagePostRequest {
+    file?: Blob;
 }
 
 export interface UserRegisterPostRequest {
@@ -51,24 +46,74 @@ export interface UserRegisterPostRequest {
 export class UserManagementApi extends runtime.BaseAPI {
 
     /**
-     * Retrieves the profile image URL for a user.
-     * Get profile image URL
+     * Retrieves user information by email address. Returns user details including name and email. Requires authentication.
+     * Get user by email
      */
-    async userEmailProfileImageGetRaw(requestParameters: UserEmailProfileImageGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ProfileImageResponseDto>> {
+    async userGetGetRaw(requestParameters: UserGetGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<UserDto>> {
         if (requestParameters['email'] == null) {
             throw new runtime.RequiredError(
                 'email',
-                'Required parameter "email" was null or undefined when calling userEmailProfileImageGet().'
+                'Required parameter "email" was null or undefined when calling userGetGet().'
             );
         }
 
         const queryParameters: any = {};
 
+        if (requestParameters['email'] != null) {
+            queryParameters['email'] = requestParameters['email'];
+        }
+
         const headerParameters: runtime.HTTPHeaders = {};
 
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("BearerAuth", []);
 
-        let urlPath = `/user/{email}/profile-image`;
-        urlPath = urlPath.replace(`{${"email"}}`, encodeURIComponent(String(requestParameters['email'])));
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/user/get`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => UserDtoFromJSON(jsonValue));
+    }
+
+    /**
+     * Retrieves user information by email address. Returns user details including name and email. Requires authentication.
+     * Get user by email
+     */
+    async userGetGet(requestParameters: UserGetGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<UserDto> {
+        const response = await this.userGetGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Retrieves the profile image URL for the authenticated user. Requires authentication.
+     * Get profile image URL
+     */
+    async userProfileImageGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ProfileImageResponseDto>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("BearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/user/profile-image`;
 
         const response = await this.request({
             path: urlPath,
@@ -81,30 +126,31 @@ export class UserManagementApi extends runtime.BaseAPI {
     }
 
     /**
-     * Retrieves the profile image URL for a user.
+     * Retrieves the profile image URL for the authenticated user. Requires authentication.
      * Get profile image URL
      */
-    async userEmailProfileImageGet(requestParameters: UserEmailProfileImageGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ProfileImageResponseDto> {
-        const response = await this.userEmailProfileImageGetRaw(requestParameters, initOverrides);
+    async userProfileImageGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ProfileImageResponseDto> {
+        const response = await this.userProfileImageGetRaw(initOverrides);
         return await response.value();
     }
 
     /**
-     * Uploads a profile image for a user. The image will be stored in Google Cloud Storage.
+     * Uploads a profile image for the authenticated user. Requires authentication. The image will be stored in Google Cloud Storage.
      * Upload profile image
      */
-    async userEmailProfileImagePostRaw(requestParameters: UserEmailProfileImagePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ProfileImageUploadResponseDto>> {
-        if (requestParameters['email'] == null) {
-            throw new runtime.RequiredError(
-                'email',
-                'Required parameter "email" was null or undefined when calling userEmailProfileImagePost().'
-            );
-        }
-
+    async userProfileImagePostRaw(requestParameters: UserProfileImagePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ProfileImageUploadResponseDto>> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("BearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
         const consumes: runtime.Consume[] = [
             { contentType: 'multipart/form-data' },
         ];
@@ -126,8 +172,7 @@ export class UserManagementApi extends runtime.BaseAPI {
         }
 
 
-        let urlPath = `/user/{email}/profile-image`;
-        urlPath = urlPath.replace(`{${"email"}}`, encodeURIComponent(String(requestParameters['email'])));
+        let urlPath = `/user/profile-image`;
 
         const response = await this.request({
             path: urlPath,
@@ -141,53 +186,11 @@ export class UserManagementApi extends runtime.BaseAPI {
     }
 
     /**
-     * Uploads a profile image for a user. The image will be stored in Google Cloud Storage.
+     * Uploads a profile image for the authenticated user. Requires authentication. The image will be stored in Google Cloud Storage.
      * Upload profile image
      */
-    async userEmailProfileImagePost(requestParameters: UserEmailProfileImagePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ProfileImageUploadResponseDto> {
-        const response = await this.userEmailProfileImagePostRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
-
-    /**
-     * Retrieves user information by email address. Returns user details including name and email.
-     * Get user by email
-     */
-    async userGetGetRaw(requestParameters: UserGetGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<UserDto>> {
-        if (requestParameters['email'] == null) {
-            throw new runtime.RequiredError(
-                'email',
-                'Required parameter "email" was null or undefined when calling userGetGet().'
-            );
-        }
-
-        const queryParameters: any = {};
-
-        if (requestParameters['email'] != null) {
-            queryParameters['email'] = requestParameters['email'];
-        }
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-
-        let urlPath = `/user/get`;
-
-        const response = await this.request({
-            path: urlPath,
-            method: 'GET',
-            headers: headerParameters,
-            query: queryParameters,
-        }, initOverrides);
-
-        return new runtime.JSONApiResponse(response, (jsonValue) => UserDtoFromJSON(jsonValue));
-    }
-
-    /**
-     * Retrieves user information by email address. Returns user details including name and email.
-     * Get user by email
-     */
-    async userGetGet(requestParameters: UserGetGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<UserDto> {
-        const response = await this.userGetGetRaw(requestParameters, initOverrides);
+    async userProfileImagePost(requestParameters: UserProfileImagePostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ProfileImageUploadResponseDto> {
+        const response = await this.userProfileImagePostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

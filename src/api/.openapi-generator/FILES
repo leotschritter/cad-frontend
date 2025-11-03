@@ -1,4 +1,4 @@
-.openapi-generator-ignore
+apis/AuthenticationApi.ts
 apis/CommentManagementApi.ts
 apis/ItineraryManagementApi.ts
 apis/LikeManagementApi.ts
@@ -6,6 +6,7 @@ apis/LocationManagementApi.ts
 apis/UserManagementApi.ts
 apis/index.ts
 index.ts
+models/AuthenticatedUser.ts
 models/CommentDto.ts
 models/CommentRequest.ts
 models/ItineraryDto.ts

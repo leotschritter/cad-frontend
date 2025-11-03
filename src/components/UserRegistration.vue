@@ -1,15 +1,8 @@
 <!-- src/components/UserRegistration.vue -->
 <script lang="ts">
 import { defineComponent } from 'vue'
-import { useUserStore } from "@/stores/user.ts";
 import { useAuthStore } from "@/stores/auth.ts";
-import type { UserDto } from "@/api";
-import "vue-router/dist/vue-router";
-
-type RegistrationPayload = {
-  name: string
-  email: string
-}
+import { getFirebaseErrorMessage } from '@/utils/firebaseErrors';
 
 export default defineComponent({
   name: 'UserRegistration',
@@ -23,15 +16,20 @@ export default defineComponent({
         firstName: '',
         lastName: '',
         email: '',
+        password: '',
+        confirmPassword: ''
       },
-      userStore: (null as any),
       authStore: (null as any),
+      showPassword: false,
+      showConfirmPassword: false
     }
   },
   methods: {
     // --- rules ---
     required(v: any) { return (!!v || v === 0) || 'Required' },
     emailRule(v: string) { return /.+@.+\..+/.test(v) || 'Invalid email' },
+    passwordMinLength(v: string) { return v.length >= 6 || 'Password must be at least 6 characters' },
+    passwordsMatch(v: string) { return v === this.form.password || 'Passwords do not match' },
 
     async onSubmit() {
       this.errorMsg = null
@@ -42,19 +40,16 @@ export default defineComponent({
       this.loading = true
 
       try {
-        const payload: RegistrationPayload = {
-          name: this.form.firstName + ' ' + this.form.lastName,
-          email: this.form.email,
-        }
-        const user: UserDto | null = await this.userStore.userRegister(payload)
-        if (user) {
-          this.authStore.login(user)
-          this.$router.push({ name: 'home' })
-        } else {
-          this.errorMsg = 'User already exists'
-        }
+        const displayName = `${this.form.firstName} ${this.form.lastName}`
+        await this.authStore.register(this.form.email, this.form.password, displayName)
+        
+        // Send verification email
+        await this.authStore.sendVerificationEmail()
+        
+        // Redirect to verification page
+        this.$router.push({ name: 'verify-email' })
       } catch (err: any) {
-        this.errorMsg = err?.message ?? 'Registration failed'
+        this.errorMsg = getFirebaseErrorMessage(err)
       } finally {
         this.loading = false
       }
@@ -69,12 +64,8 @@ export default defineComponent({
   },
   created() {
     // initialize store
-    this.userStore = useUserStore()
     this.authStore = useAuthStore()
-  },
-  beforeUnmount() {
-    // cleanup if needed
-  },
+  }
 })
 </script>
 
@@ -120,6 +111,24 @@ export default defineComponent({
                   type="email"
                   :rules="[required, emailRule]"
                   autocomplete="email"
+              />
+              <v-text-field
+                  v-model="form.password"
+                  label="Password"
+                  :type="showPassword ? 'text' : 'password'"
+                  :rules="[required, passwordMinLength]"
+                  autocomplete="new-password"
+                  :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
+                  @click:append-inner="showPassword = !showPassword"
+              />
+              <v-text-field
+                  v-model="form.confirmPassword"
+                  label="Confirm Password"
+                  :type="showConfirmPassword ? 'text' : 'password'"
+                  :rules="[required, passwordsMatch]"
+                  autocomplete="new-password"
+                  :append-inner-icon="showConfirmPassword ? 'mdi-eye-off' : 'mdi-eye'"
+                  @click:append-inner="showConfirmPassword = !showConfirmPassword"
               />
 
               <div class="d-flex align-center justify-end mt-2">
