@@ -55,6 +55,12 @@ export interface AccommodationDto {
      * @memberof AccommodationDto
      */
     accommodationImageUrl?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof AccommodationDto
+     */
+    bookingPageUrl?: string;
 }
 
 /**
@@ -80,6 +86,7 @@ export function AccommodationDtoFromJSONTyped(json: any, ignoreDiscriminator: bo
         'rating': json['rating'] == null ? undefined : json['rating'],
         'notes': json['notes'] == null ? undefined : json['notes'],
         'accommodationImageUrl': json['accommodationImageUrl'] == null ? undefined : json['accommodationImageUrl'],
+        'bookingPageUrl': json['bookingPageUrl'] == null ? undefined : json['bookingPageUrl'],
     };
 }
 
@@ -100,6 +107,7 @@ export function AccommodationDtoToJSONTyped(value?: AccommodationDto | null, ign
         'rating': value['rating'],
         'notes': value['notes'],
         'accommodationImageUrl': value['accommodationImageUrl'],
+        'bookingPageUrl': value['bookingPageUrl'],
     };
 }
 
