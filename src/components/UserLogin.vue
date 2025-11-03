@@ -126,6 +126,13 @@ export default defineComponent({
                   @click:append-inner="showPassword = !showPassword"
               />
 
+              <!-- Forgot Password Link -->
+              <div class="text-right mb-2">
+                <v-btn variant="text" size="small" :to="{ name: 'password-reset' }">
+                  Forgot Password?
+                </v-btn>
+              </div>
+
               <div class="d-flex align-center justify-space-between mt-2">
                 <!-- Redirect to Register component -->
                 <v-btn variant="text" :to="{ name: 'register' }">

@@ -23,6 +23,8 @@ export function getFirebaseErrorMessage(error: any): string {
         return 'This verification link has expired';
       case 'auth/invalid-action-code':
         return 'This verification link is invalid';
+      case 'auth/missing-email':
+        return 'Please enter your email address';
       default:
         return `An error occurred: ${error.message}`;
     }
