@@ -3,6 +3,7 @@
 import { defineComponent } from 'vue'
 import { useAuthStore } from "@/stores/auth.ts";
 import { getFirebaseErrorMessage } from '@/utils/firebaseErrors';
+import { getApi } from '@/services/api';
 
 export default defineComponent({
   name: 'UserLogin',
@@ -17,6 +18,7 @@ export default defineComponent({
         password: ''
       },
       authStore: (null as any),
+      userApi: getApi('UserManagementApi'),
       showPassword: false
     }
   },
@@ -36,6 +38,25 @@ export default defineComponent({
 
       try {
         await this.authStore.login(this.form.email, this.form.password)
+        
+        // Sync user to backend database if not already there
+        // (for users who registered before Firebase migration or missed the sync)
+        if (this.authStore.user?.displayName && this.authStore.user?.email) {
+          try {
+            await this.userApi.userRegisterPost({
+              userDto: {
+                name: this.authStore.user.displayName,
+                email: this.authStore.user.email
+              }
+            })
+          } catch (dbError: any) {
+            // Ignore 400 errors (user already exists in database)
+            const status = dbError?.response?.status
+            if (status !== 400) {
+              console.warn('Failed to sync user to backend database:', dbError)
+            }
+          }
+        }
         
         // Check if email is verified
         if (!this.authStore.isEmailVerified) {

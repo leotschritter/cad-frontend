@@ -3,6 +3,7 @@
 import { defineComponent } from 'vue'
 import { useAuthStore } from "@/stores/auth.ts";
 import { getFirebaseErrorMessage } from '@/utils/firebaseErrors';
+import { getApi } from '@/services/api';
 
 export default defineComponent({
   name: 'UserRegistration',
@@ -20,6 +21,7 @@ export default defineComponent({
         confirmPassword: ''
       },
       authStore: (null as any),
+      userApi: getApi('UserManagementApi'),
       showPassword: false,
       showConfirmPassword: false
     }
@@ -41,12 +43,27 @@ export default defineComponent({
 
       try {
         const displayName = `${this.form.firstName} ${this.form.lastName}`
+        
+        // 1. Register with Firebase (creates Firebase Auth user)
         await this.authStore.register(this.form.email, this.form.password, displayName)
         
-        // Send verification email
+        // 2. Create user in backend database (for profile images, etc.)
+        try {
+          await this.userApi.userRegisterPost({
+            userDto: {
+              name: displayName,
+              email: this.form.email
+            }
+          })
+        } catch (dbError: any) {
+          // Log but don't fail - Firebase user is already created
+          console.warn('Failed to sync user to backend database:', dbError)
+        }
+        
+        // 3. Send verification email
         await this.authStore.sendVerificationEmail()
         
-        // Redirect to verification page
+        // 4. Redirect to verification page
         this.$router.push({ name: 'verify-email' })
       } catch (err: any) {
         this.errorMsg = getFirebaseErrorMessage(err)
