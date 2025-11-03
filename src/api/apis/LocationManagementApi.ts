@@ -37,7 +37,7 @@ export interface LocationItineraryItineraryIdPostRequest {
     name?: string;
     description?: string;
     fromDate?: string;
-    toDate?: string;
+    toDate?: string
     files?: Array<Blob>;
     transportType?: string;
     transportDuration?: number;
@@ -47,6 +47,7 @@ export interface LocationItineraryItineraryIdPostRequest {
     accommodationRating?: number;
     accommodationNotes?: string;
     accommodationImageUrl?: string;
+    bookingPageUrl?: string;
 }
 
 export interface LocationLocationIdDeleteRequest {
@@ -195,6 +196,10 @@ export class LocationManagementApi extends runtime.BaseAPI {
 
         if (requestParameters['accommodationImageUrl'] != null) {
             formParams.append('accommodationImageUrl', requestParameters['accommodationImageUrl'] as any);
+        }
+
+        if (requestParameters['bookingPageUrl'] != null) {
+            formParams.append('bookingPageUrl', requestParameters['bookingPageUrl'] as any);
         }
 
 
