@@ -122,13 +122,6 @@ variable "create_artifact_registry" {
   default     = false
 }
 
-# Docker Image Configuration
-variable "docker_image_url" {
-  description = "Full URL of the Docker image to deploy (if empty, uses Artifact Registry)"
-  type        = string
-  default     = ""
-}
-
 # Backend Configuration
 variable "backend_url" {
   description = "URL of the backend API"
@@ -167,6 +160,7 @@ variable "service_account_email" {
 }
 
 variable "frontend_image" {
+  description = "Full URL of the Docker image to deploy (if empty, uses Artifact Registry)"
   type    = string
   default = "europe-west1-docker.pkg.dev/graphite-plane-474510-s9/docker-repo/travel-frontend:latest"
 }
