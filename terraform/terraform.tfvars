@@ -34,7 +34,7 @@ artifact_registry_name  = "docker-repo"
 # Docker Image Configuration
 # Using existing GCP Artifact Registry (shared with backend)
 create_artifact_registry = false
-docker_image_url = ""
+frontend_image = ""
 
 # Backend API Configuration
 backend_url = "https://api.tripico.fun"

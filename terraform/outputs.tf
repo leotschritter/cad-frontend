@@ -32,9 +32,9 @@ output "artifact_registry_url" {
   value       = var.create_artifact_registry ? "${var.region}-docker.pkg.dev/${var.project_id}/${var.artifact_registry_name}" : "N/A - Using external registry"
 }
 
-output "docker_image_url" {
+output "frontend_image" {
   description = "The full Docker image URL used by Cloud Run"
-  value       = var.docker_image_url != "" ? var.docker_image_url : "${var.region}-docker.pkg.dev/${var.project_id}/${var.artifact_registry_name}/${var.app_name}:${var.app_version}"
+  value       = var.frontend_image
 }
 
 # Service Account Outputs
