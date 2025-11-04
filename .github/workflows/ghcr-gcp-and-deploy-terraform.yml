@@ -4,10 +4,6 @@ on:
   push:
     branches: [ main ]
     tags: [ 'v*.*.*' ]
-    paths:
-      - 'terraform/**'
-      - 'Dockerfile'
-      - '.github/workflows/ghcr-gcp-and-deploy-terraform.yml'
   workflow_dispatch:
 
 jobs:
