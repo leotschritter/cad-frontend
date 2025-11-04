@@ -81,7 +81,7 @@
                 <div class="d-none d-md-flex align-center justify-center mr-2" style="min-width: 100px;">
                   <v-chip v-if="element.transport?.mode || element.transport?.duration" size="small" class="mr-2" variant="tonal">
                     <v-icon v-if="element.transport?.mode" :start="!!element.transport?.duration" :icon="transportIcon(element.transport.mode)" size="18" />
-                    {{ element.transport?.duration }}
+                    {{ element.transport?.duration + ' min' }}
                   </v-chip>
                 </div>
 
@@ -121,10 +121,6 @@
                     >
                       Lookup
                     </v-btn>
-                  </div>
-                  <div v-if="element.address" class="text-caption text-grey-darken-1 mt-2">
-                    <v-icon size="14" icon="mdi-map-marker" />
-                    {{ element.address }}
                   </div>
                 </div>
 
@@ -292,16 +288,16 @@
                       </template>
                     </v-select>
 
-                    <v-text-field
+                    <v-number-input
                         v-model="element.transport.duration"
-                        label="Duration (e.g., 2h 30m)"
+                        label="Duration (min)"
                         density="comfortable"
                         class="flex-1"
                         @blur="emitUpdate"
                     />
-                    <v-text-field
+                    <v-number-input
                         v-model="element.transport.distance"
-                        label="Distance (e.g., 231 km)"
+                        label="Distance (km)"
                         density="comfortable"
                         class="flex-1"
                         @blur="emitUpdate"
@@ -343,31 +339,23 @@
                               class="ml-3"
                               variant="tonal"
                           >
-                            {{ element.accommodation.pricePerNight }}/night
+                            {{ element.accommodation.pricePerNight }}€/night
                           </v-chip>
-                        </div>
-
-                        <div
-                            class="text-caption text-grey-darken-1 mt-1"
-                            v-if="element.accommodation.address"
-                        >
-                          <v-icon start size="16" icon="mdi-map-marker-outline" />
-                          {{ element.accommodation.address }}
                         </div>
 
                         <div class="mt-2 d-flex align-center">
                           <v-rating
-                              v-model="element.accommodation.rating"
+                              :model-value="element.accommodation.rating ?? 0"
+                              @update:model-value="(val) => { element.accommodation.rating = typeof val === 'number' ? val : undefined; emitUpdate(); }"
                               density="comfortable"
                               size="20"
                               half-increments
-                              @update:model-value="emitUpdate"
                           />
                           <span
                               class="text-caption ml-2"
-                              v-if="element.accommodation?.rating != null"
+                              v-if="element.accommodation.rating != null && element.accommodation.rating > 0"
                           >
-                            {{ Number(element.accommodation.rating).toFixed(1) }}
+                            {{ element.accommodation.rating.toFixed(1) }}
                           </span>
                         </div>
 
@@ -451,14 +439,19 @@
       <v-card-text>
         <div class="d-flex flex-column gap-3">
           <v-text-field v-model="accForm.name" label="Name" />
-          <v-text-field v-model="accForm.address" label="Address (optional)" />
           <v-text-field v-model="accForm.url" label="Booking URL (optional)" prepend-inner-icon="mdi-link-variant" />
           <v-text-field v-model="accForm.image" label="Image URL (optional)" prepend-inner-icon="mdi-image" />
           <div class="d-flex gap-3">
             <v-text-field v-model="accForm.pricePerNight" label="Price per night (optional)" class="flex-1" />
             <div class="flex-1 d-flex align-center">
               <span class="mr-3 text-body-2">Rating</span>
-              <v-rating v-model="accForm.rating" half-increments hover size="22" />
+              <v-rating
+                  :model-value="accForm.rating ?? 0"
+                  @update:model-value="(val) => accForm.rating = typeof val === 'number' ? val : undefined"
+                  half-increments
+                  hover
+                  size="22"
+              />
             </div>
           </div>
           <v-textarea v-model="accForm.notes" label="Notes (optional)" rows="2" auto-grow />
@@ -630,11 +623,10 @@ function formatDate(d?: string) {
 const accDialog = ref<{ open: boolean; model: Locations | null }>({ open: false, model: null })
 const accForm = ref({
   name: '',
-  address: '',
   url: '',
   image: '',
   pricePerNight: '',
-  rating: 0 as number | undefined,
+  rating: undefined as number | undefined,
   notes: '',
 })
 
@@ -643,22 +635,16 @@ function openAccDialog(destination: Locations) {
   const cur: any = destination.accommodation ?? {}
   accForm.value = {
     name: cur.name ?? '',
-    address: cur.address ?? '',
     url: cur.url ?? '',
     image: cur.image ?? '',
     pricePerNight: cur.pricePerNight ?? '',
-    rating: cur.rating ?? 0,
+    rating: cur.rating ?? undefined,
     notes: cur.notes ?? '',
   }
 }
 function saveAccommodation() {
   if (!accDialog.value.model) return
-  const formData = { ...accForm.value }
-  // Convert rating to undefined if 0
-  if (formData.rating === 0) {
-    formData.rating = undefined
-  }
-  accDialog.value.model.accommodation = formData
+  accDialog.value.model.accommodation = { ...accForm.value }
   accDialog.value.open = false
   emitUpdate()
 }
