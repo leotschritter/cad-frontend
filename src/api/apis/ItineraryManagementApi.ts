@@ -28,22 +28,8 @@ import {
     ItinerarySearchResponseDtoToJSON,
 } from '../models/index';
 
-export interface ItineraryCreateEmailPostRequest {
-    email: string;
-    itineraryDto: ItineraryDto;
-}
-
 export interface ItineraryCreatePostRequest {
-    userId: number;
     itineraryDto: ItineraryDto;
-}
-
-export interface ItineraryGetEmailGetRequest {
-    email: string;
-}
-
-export interface ItineraryGetGetRequest {
-    userId: number;
 }
 
 export interface ItinerarySearchPostRequest {
@@ -56,65 +42,10 @@ export interface ItinerarySearchPostRequest {
 export class ItineraryManagementApi extends runtime.BaseAPI {
 
     /**
-     * Creates a new travel itinerary for a specific user. The itinerary must include title, destination, start date, and descriptions.
-     * Create a new itinerary
-     */
-    async itineraryCreateEmailPostRaw(requestParameters: ItineraryCreateEmailPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
-        if (requestParameters['email'] == null) {
-            throw new runtime.RequiredError(
-                'email',
-                'Required parameter "email" was null or undefined when calling itineraryCreateEmailPost().'
-            );
-        }
-
-        if (requestParameters['itineraryDto'] == null) {
-            throw new runtime.RequiredError(
-                'itineraryDto',
-                'Required parameter "itineraryDto" was null or undefined when calling itineraryCreateEmailPost().'
-            );
-        }
-
-        const queryParameters: any = {};
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-        headerParameters['Content-Type'] = 'application/json';
-
-
-        let urlPath = `/itinerary/create/{email}`;
-        urlPath = urlPath.replace(`{${"email"}}`, encodeURIComponent(String(requestParameters['email'])));
-
-        const response = await this.request({
-            path: urlPath,
-            method: 'POST',
-            headers: headerParameters,
-            query: queryParameters,
-            body: ItineraryDtoToJSON(requestParameters['itineraryDto']),
-        }, initOverrides);
-
-        return new runtime.VoidApiResponse(response);
-    }
-
-    /**
-     * Creates a new travel itinerary for a specific user. The itinerary must include title, destination, start date, and descriptions.
-     * Create a new itinerary
-     */
-    async itineraryCreateEmailPost(requestParameters: ItineraryCreateEmailPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
-        await this.itineraryCreateEmailPostRaw(requestParameters, initOverrides);
-    }
-
-    /**
-     * Creates a new travel itinerary for a specific user. The itinerary must include title, destination, start date, and descriptions.
+     * Creates a new travel itinerary for the authenticated user. Requires authentication. The itinerary must include title, destination, start date, and descriptions.
      * Create a new itinerary
      */
     async itineraryCreatePostRaw(requestParameters: ItineraryCreatePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
-        if (requestParameters['userId'] == null) {
-            throw new runtime.RequiredError(
-                'userId',
-                'Required parameter "userId" was null or undefined when calling itineraryCreatePost().'
-            );
-        }
-
         if (requestParameters['itineraryDto'] == null) {
             throw new runtime.RequiredError(
                 'itineraryDto',
@@ -124,14 +55,18 @@ export class ItineraryManagementApi extends runtime.BaseAPI {
 
         const queryParameters: any = {};
 
-        if (requestParameters['userId'] != null) {
-            queryParameters['userId'] = requestParameters['userId'];
-        }
-
         const headerParameters: runtime.HTTPHeaders = {};
 
         headerParameters['Content-Type'] = 'application/json';
 
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("BearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
 
         let urlPath = `/itinerary/create`;
 
@@ -147,7 +82,7 @@ export class ItineraryManagementApi extends runtime.BaseAPI {
     }
 
     /**
-     * Creates a new travel itinerary for a specific user. The itinerary must include title, destination, start date, and descriptions.
+     * Creates a new travel itinerary for the authenticated user. Requires authentication. The itinerary must include title, destination, start date, and descriptions.
      * Create a new itinerary
      */
     async itineraryCreatePost(requestParameters: ItineraryCreatePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
@@ -155,64 +90,22 @@ export class ItineraryManagementApi extends runtime.BaseAPI {
     }
 
     /**
-     * Retrieves all itineraries associated with a specific user Email. Returns a list of itinerary details including title, destination, start date, and descriptions.
-     * Get itineraries for a user
+     * Retrieves all itineraries associated with the authenticated user. Requires authentication. Returns a list of itinerary details including title, destination, start date, and descriptions.
+     * Get itineraries for authenticated user
      */
-    async itineraryGetEmailGetRaw(requestParameters: ItineraryGetEmailGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<ItineraryDto>>> {
-        if (requestParameters['email'] == null) {
-            throw new runtime.RequiredError(
-                'email',
-                'Required parameter "email" was null or undefined when calling itineraryGetEmailGet().'
-            );
-        }
-
+    async itineraryGetGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<ItineraryDto>>> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("BearerAuth", []);
 
-        let urlPath = `/itinerary/get/{email}`;
-        urlPath = urlPath.replace(`{${"email"}}`, encodeURIComponent(String(requestParameters['email'])));
-
-        const response = await this.request({
-            path: urlPath,
-            method: 'GET',
-            headers: headerParameters,
-            query: queryParameters,
-        }, initOverrides);
-
-        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(ItineraryDtoFromJSON));
-    }
-
-    /**
-     * Retrieves all itineraries associated with a specific user Email. Returns a list of itinerary details including title, destination, start date, and descriptions.
-     * Get itineraries for a user
-     */
-    async itineraryGetEmailGet(requestParameters: ItineraryGetEmailGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<ItineraryDto>> {
-        const response = await this.itineraryGetEmailGetRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
-
-    /**
-     * Retrieves all itineraries associated with a specific user ID. Returns a list of itinerary details including title, destination, start date, and descriptions.
-     * Get itineraries for a user
-     */
-    async itineraryGetGetRaw(requestParameters: ItineraryGetGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<ItineraryDto>>> {
-        if (requestParameters['userId'] == null) {
-            throw new runtime.RequiredError(
-                'userId',
-                'Required parameter "userId" was null or undefined when calling itineraryGetGet().'
-            );
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
         }
-
-        const queryParameters: any = {};
-
-        if (requestParameters['userId'] != null) {
-            queryParameters['userId'] = requestParameters['userId'];
-        }
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
 
         let urlPath = `/itinerary/get`;
 
@@ -227,16 +120,16 @@ export class ItineraryManagementApi extends runtime.BaseAPI {
     }
 
     /**
-     * Retrieves all itineraries associated with a specific user ID. Returns a list of itinerary details including title, destination, start date, and descriptions.
-     * Get itineraries for a user
+     * Retrieves all itineraries associated with the authenticated user. Requires authentication. Returns a list of itinerary details including title, destination, start date, and descriptions.
+     * Get itineraries for authenticated user
      */
-    async itineraryGetGet(requestParameters: ItineraryGetGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<ItineraryDto>> {
-        const response = await this.itineraryGetGetRaw(requestParameters, initOverrides);
+    async itineraryGetGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<ItineraryDto>> {
+        const response = await this.itineraryGetGetRaw(initOverrides);
         return await response.value();
     }
 
     /**
-     * Search for itineraries based on various criteria including user name, user email, title, destination, description, and start date range. All search parameters are optional - empty/null values will be ignored.
+     * Search for itineraries based on various criteria including user name, user email, title, destination, description, and start date range. All search parameters are optional - empty/null values will be ignored. Requires authentication.
      * Search itineraries
      */
     async itinerarySearchPostRaw(requestParameters: ItinerarySearchPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<ItinerarySearchResponseDto>>> {
@@ -253,6 +146,14 @@ export class ItineraryManagementApi extends runtime.BaseAPI {
 
         headerParameters['Content-Type'] = 'application/json';
 
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("BearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
 
         let urlPath = `/itinerary/search`;
 
@@ -268,7 +169,7 @@ export class ItineraryManagementApi extends runtime.BaseAPI {
     }
 
     /**
-     * Search for itineraries based on various criteria including user name, user email, title, destination, description, and start date range. All search parameters are optional - empty/null values will be ignored.
+     * Search for itineraries based on various criteria including user name, user email, title, destination, description, and start date range. All search parameters are optional - empty/null values will be ignored. Requires authentication.
      * Search itineraries
      */
     async itinerarySearchPost(requestParameters: ItinerarySearchPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<ItinerarySearchResponseDto>> {

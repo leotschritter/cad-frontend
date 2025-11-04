@@ -2,6 +2,7 @@
 import { defineComponent } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useUserStore } from "@/stores/user.ts";
+import { updateProfile } from 'firebase/auth';
 
 export default defineComponent({
   name: 'ProfileView',
@@ -18,13 +19,13 @@ export default defineComponent({
   },
   computed: {
     name(): string {
-      return this.authStore.user?.name || ''
+      return this.authStore.user?.displayName || ''
     },
     email(): string {
       return this.authStore.user?.email || ''
     },
     profileImageUrl(): string {
-      return this.authStore.user?.profileImageUrl || 'https://randomuser.me/api/portraits/lego/1.jpg'
+      return this.authStore.user?.photoURL || 'https://randomuser.me/api/portraits/lego/1.jpg'
     },
     currentProfileImage(): string {
       // Use the preview if available (user selected a new image), otherwise use the profile image URL
@@ -69,30 +70,28 @@ export default defineComponent({
           return
         }
 
-        if (!this.email) {
-          this.errorMessage = 'User email not found'
+        if (!this.authStore.user) {
+          this.errorMessage = 'User not found'
           this.loading = false
           return
         }
 
-        // Call the API to upload the profile image
-        const updatedUser = await this.userStore.userUploadProfileImage({
-          email: this.email,
+        // Call the API to upload the profile image (no email needed - uses Firebase token)
+        const imageUrl = await this.userStore.userUploadProfileImage({
           file: this.imageFile
         })
 
-        if (updatedUser) {
-          // Update the auth store with the new profile image URL
-          if (this.authStore.user) {
-            this.authStore.user.profileImageUrl = updatedUser.profileImageUrl
-            // Persist to localStorage
-            this.authStore.login(this.authStore.user)
-          }
+        if (imageUrl) {
+          // Update Firebase user profile with the new photo URL
+          await updateProfile(this.authStore.user, {
+            photoURL: imageUrl
+          })
+
+          // Reload user to get updated profile
+          await this.authStore.reloadUser()
 
           // Update preview to show the new uploaded image
-          if (updatedUser.profileImageUrl) {
-            this.imagePreview = updatedUser.profileImageUrl
-          }
+          this.imagePreview = imageUrl
 
           // Clear the file input and reset the hidden file input element
           this.imageFile = null

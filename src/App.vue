@@ -3,14 +3,12 @@ import { RouterView } from 'vue-router'
 import { defineComponent } from "vue";
 import { useAuthStore } from "@/stores/auth.ts";
 import AppFooter from "@/components/AppFooter.vue";
-import logo from '@/assets/images/tripico-logo.png'
 
 export default defineComponent({
   name: 'App',
   data() {
     return {
-      authStore: null as any,
-      logo: logo
+      authStore: null as any
     }
   },
   components: {
@@ -19,25 +17,24 @@ export default defineComponent({
   },
   mounted() {
     this.authStore = useAuthStore()
-    this.authStore.restore()
   },
   computed: {
     getEmail(): string {
       return this.authStore?.user?.email ?? 'Log in to see email'
     },
     getName(): string {
-      return this.authStore?.user?.name ?? 'Log in to see name'
+      return this.authStore?.user?.displayName ?? 'Log in to see name'
     },
     getProfileImageUrl(): string {
-      return this.authStore?.user?.profileImageUrl ?? 'https://randomuser.me/api/portraits/lego/1.jpg'
+      return this.authStore?.user?.photoURL ?? 'https://randomuser.me/api/portraits/lego/1.jpg'
     },
     isLoggedIn(): boolean {
-      return this.authStore?.user != null;
+      return this.authStore?.isAuthenticated ?? false;
     }
   },
   methods: {
-    logout() {
-      this.authStore.logout();
+    async logout() {
+      await this.authStore.logout();
       this.$router.push({ name: 'login' });
     }
   }
@@ -75,13 +72,6 @@ export default defineComponent({
     </v-navigation-drawer>
 
     <v-app-bar class="app-bar-styles" flat>
-      <v-img
-          :src="logo"
-          max-height="60"
-          max-width="60"
-          class="ml-4"
-          contain
-      />
       <v-app-bar-title class="d-flex align-center">
         <span class="brand-name">Tripico</span>
         <span class="brand-slogan ml-2">– Discover. Share. Feel.</span>
