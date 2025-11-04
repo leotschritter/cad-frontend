@@ -194,8 +194,10 @@ async function onGeocodeRequest(idx: number, query: string) {
 
 /**
  * Save all locations to the backend, including uploading any pending images
- * Strategy: Add only new locations (those not already in the backend)
- * Existing locations are preserved
+ * Strategy:
+ * - New locations (without backend ID) are created with their images
+ * - Existing locations with pendingFiles get the new images added (old images preserved)
+ * - Existing locations without pendingFiles are skipped
  */
 async function saveAllLocations(): Promise<boolean> {
   console.log('saveAllLocations called')
@@ -217,8 +219,8 @@ async function saveAllLocations(): Promise<boolean> {
     const existingLocations = await locationStore.getLocationsForItinerary(props.itineraryId)
     console.log('Found', existingLocations.length, 'existing locations')
 
-    // Step 2: Add only new locations (those without a backend ID)
-    console.log('Step 2: Adding new locations...')
+    // Step 2: Process all locations - create new ones or update existing ones with new images
+    console.log('Step 2: Processing all locations...')
     for (let i = 0; i < locations.value.length; i++) {
       const loc = locations.value[i]
       if (!loc) continue
@@ -227,10 +229,37 @@ async function saveAllLocations(): Promise<boolean> {
       const existsInBackend = existingLocations.some(existing => existing.id === loc.id)
 
       if (existsInBackend) {
-        console.log(`Skipping existing location ${i + 1}/${locations.value.length}:`, loc.name, `(ID: ${loc.id})`)
+        // Location exists - check if there are new images to upload
+        if (loc.pendingFiles && loc.pendingFiles.length > 0) {
+          console.log(`Updating existing location ${i + 1}/${locations.value.length}:`, loc.name, `(ID: ${loc.id})`)
+          console.log(`  - Adding ${loc.pendingFiles.length} new image(s)`)
+          loc.pendingFiles.forEach((file, idx) => {
+            console.log(`    File ${idx + 1}: ${file.name} (${file.size} bytes, ${file.type})`)
+          })
+
+          // Upload new images to existing location
+          const uploadResponse = await locationStore.uploadImagesToLocation({
+            locationId: loc.id,
+            files: loc.pendingFiles
+          })
+
+          if (uploadResponse && uploadResponse.imageUrls) {
+            console.log('Images uploaded successfully:', uploadResponse.imageUrls)
+            // Add new image URLs to existing images (don't replace!)
+            loc.images = [...(loc.images || []), ...uploadResponse.imageUrls]
+            // Clear pending files
+            loc.pendingFiles = []
+          } else {
+            success = false
+            console.error(`Failed to upload images for location: ${loc.name}`)
+          }
+        } else {
+          console.log(`Skipping existing location ${i + 1}/${locations.value.length}:`, loc.name, `(ID: ${loc.id}) - no new images`)
+        }
         continue
       }
 
+      // New location - create it
       console.log(`Creating new location ${i + 1}/${locations.value.length}:`, loc.name)
 
       // Log file information if there are pending files
@@ -291,7 +320,7 @@ async function saveAllLocations(): Promise<boolean> {
       }
     }
 
-    console.log('All new locations added. Success:', success)
+    console.log('All locations processed. Success:', success)
     return success
   } catch (error) {
     console.error('Error saving locations:', error)
