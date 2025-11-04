@@ -1,5 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
+export * from './AuthenticationApi';
 export * from './CommentManagementApi';
 export * from './ItineraryManagementApi';
 export * from './LikeManagementApi';

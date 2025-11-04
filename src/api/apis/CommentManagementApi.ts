@@ -30,7 +30,6 @@ import {
 
 export interface CommentCommentIdDeleteRequest {
     commentId: string;
-    userEmail: string;
 }
 
 export interface CommentItineraryItineraryIdGetRequest {
@@ -52,7 +51,7 @@ export interface CommentUserUserEmailGetRequest {
 export class CommentManagementApi extends runtime.BaseAPI {
 
     /**
-     * Deletes a comment. Users can only delete their own comments.
+     * Deletes a comment. Requires authentication. Users can only delete their own comments.
      * Delete comment
      */
     async commentCommentIdDeleteRaw(requestParameters: CommentCommentIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MessageResponseDto>> {
@@ -63,21 +62,18 @@ export class CommentManagementApi extends runtime.BaseAPI {
             );
         }
 
-        if (requestParameters['userEmail'] == null) {
-            throw new runtime.RequiredError(
-                'userEmail',
-                'Required parameter "userEmail" was null or undefined when calling commentCommentIdDelete().'
-            );
-        }
-
         const queryParameters: any = {};
-
-        if (requestParameters['userEmail'] != null) {
-            queryParameters['userEmail'] = requestParameters['userEmail'];
-        }
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("BearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
 
         let urlPath = `/comment/{commentId}`;
         urlPath = urlPath.replace(`{${"commentId"}}`, encodeURIComponent(String(requestParameters['commentId'])));
@@ -93,7 +89,7 @@ export class CommentManagementApi extends runtime.BaseAPI {
     }
 
     /**
-     * Deletes a comment. Users can only delete their own comments.
+     * Deletes a comment. Requires authentication. Users can only delete their own comments.
      * Delete comment
      */
     async commentCommentIdDelete(requestParameters: CommentCommentIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MessageResponseDto> {
@@ -102,7 +98,7 @@ export class CommentManagementApi extends runtime.BaseAPI {
     }
 
     /**
-     * Retrieves all comments for a specific itinerary, ordered by creation date (newest first).
+     * Retrieves all comments for a specific itinerary, ordered by creation date (newest first). Requires authentication.
      * Get comments for itinerary
      */
     async commentItineraryItineraryIdGetRaw(requestParameters: CommentItineraryItineraryIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<CommentDto>>> {
@@ -117,6 +113,14 @@ export class CommentManagementApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("BearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
 
         let urlPath = `/comment/itinerary/{itineraryId}`;
         urlPath = urlPath.replace(`{${"itineraryId"}}`, encodeURIComponent(String(requestParameters['itineraryId'])));
@@ -132,7 +136,7 @@ export class CommentManagementApi extends runtime.BaseAPI {
     }
 
     /**
-     * Retrieves all comments for a specific itinerary, ordered by creation date (newest first).
+     * Retrieves all comments for a specific itinerary, ordered by creation date (newest first). Requires authentication.
      * Get comments for itinerary
      */
     async commentItineraryItineraryIdGet(requestParameters: CommentItineraryItineraryIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<CommentDto>> {
@@ -141,7 +145,7 @@ export class CommentManagementApi extends runtime.BaseAPI {
     }
 
     /**
-     * Adds a comment to an itinerary. Users can add multiple comments.
+     * Adds a comment to an itinerary. Requires authentication. Users can add multiple comments.
      * Add comment to itinerary
      */
     async commentItineraryItineraryIdPostRaw(requestParameters: CommentItineraryItineraryIdPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<CommentDto>> {
@@ -165,6 +169,14 @@ export class CommentManagementApi extends runtime.BaseAPI {
 
         headerParameters['Content-Type'] = 'application/json';
 
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("BearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
 
         let urlPath = `/comment/itinerary/{itineraryId}`;
         urlPath = urlPath.replace(`{${"itineraryId"}}`, encodeURIComponent(String(requestParameters['itineraryId'])));
@@ -181,7 +193,7 @@ export class CommentManagementApi extends runtime.BaseAPI {
     }
 
     /**
-     * Adds a comment to an itinerary. Users can add multiple comments.
+     * Adds a comment to an itinerary. Requires authentication. Users can add multiple comments.
      * Add comment to itinerary
      */
     async commentItineraryItineraryIdPost(requestParameters: CommentItineraryItineraryIdPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<CommentDto> {
@@ -190,7 +202,7 @@ export class CommentManagementApi extends runtime.BaseAPI {
     }
 
     /**
-     * Retrieves all comments made by a specific user, ordered by creation date (newest first).
+     * Retrieves all comments made by a specific user, ordered by creation date (newest first). Requires authentication.
      * Get comments by user
      */
     async commentUserUserEmailGetRaw(requestParameters: CommentUserUserEmailGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<CommentDto>>> {
@@ -205,6 +217,14 @@ export class CommentManagementApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("BearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
 
         let urlPath = `/comment/user/{userEmail}`;
         urlPath = urlPath.replace(`{${"userEmail"}}`, encodeURIComponent(String(requestParameters['userEmail'])));
@@ -220,7 +240,7 @@ export class CommentManagementApi extends runtime.BaseAPI {
     }
 
     /**
-     * Retrieves all comments made by a specific user, ordered by creation date (newest first).
+     * Retrieves all comments made by a specific user, ordered by creation date (newest first). Requires authentication.
      * Get comments by user
      */
     async commentUserUserEmailGet(requestParameters: CommentUserUserEmailGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<CommentDto>> {

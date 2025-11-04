@@ -30,7 +30,6 @@ import {
 
 export interface LikeItineraryItineraryIdDeleteRequest {
     itineraryId: number;
-    userEmail: string;
 }
 
 export interface LikeItineraryItineraryIdGetRequest {
@@ -39,11 +38,6 @@ export interface LikeItineraryItineraryIdGetRequest {
 
 export interface LikeItineraryItineraryIdPostRequest {
     itineraryId: number;
-    userEmail: string;
-}
-
-export interface LikeUserUserEmailGetRequest {
-    userEmail: string;
 }
 
 /**
@@ -52,7 +46,7 @@ export interface LikeUserUserEmailGetRequest {
 export class LikeManagementApi extends runtime.BaseAPI {
 
     /**
-     * Removes a like from an itinerary.
+     * Removes a like from an itinerary. Requires authentication.
      * Remove like from itinerary
      */
     async likeItineraryItineraryIdDeleteRaw(requestParameters: LikeItineraryItineraryIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MessageResponseDto1>> {
@@ -63,21 +57,18 @@ export class LikeManagementApi extends runtime.BaseAPI {
             );
         }
 
-        if (requestParameters['userEmail'] == null) {
-            throw new runtime.RequiredError(
-                'userEmail',
-                'Required parameter "userEmail" was null or undefined when calling likeItineraryItineraryIdDelete().'
-            );
-        }
-
         const queryParameters: any = {};
-
-        if (requestParameters['userEmail'] != null) {
-            queryParameters['userEmail'] = requestParameters['userEmail'];
-        }
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("BearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
 
         let urlPath = `/like/itinerary/{itineraryId}`;
         urlPath = urlPath.replace(`{${"itineraryId"}}`, encodeURIComponent(String(requestParameters['itineraryId'])));
@@ -93,7 +84,7 @@ export class LikeManagementApi extends runtime.BaseAPI {
     }
 
     /**
-     * Removes a like from an itinerary.
+     * Removes a like from an itinerary. Requires authentication.
      * Remove like from itinerary
      */
     async likeItineraryItineraryIdDelete(requestParameters: LikeItineraryItineraryIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MessageResponseDto1> {
@@ -102,7 +93,7 @@ export class LikeManagementApi extends runtime.BaseAPI {
     }
 
     /**
-     * Retrieves the number of likes for a specific itinerary.
+     * Retrieves the number of likes for a specific itinerary. Requires authentication.
      * Get like count for itinerary
      */
     async likeItineraryItineraryIdGetRaw(requestParameters: LikeItineraryItineraryIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<LikeResponseDto>> {
@@ -117,6 +108,14 @@ export class LikeManagementApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("BearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
 
         let urlPath = `/like/itinerary/{itineraryId}`;
         urlPath = urlPath.replace(`{${"itineraryId"}}`, encodeURIComponent(String(requestParameters['itineraryId'])));
@@ -132,7 +131,7 @@ export class LikeManagementApi extends runtime.BaseAPI {
     }
 
     /**
-     * Retrieves the number of likes for a specific itinerary.
+     * Retrieves the number of likes for a specific itinerary. Requires authentication.
      * Get like count for itinerary
      */
     async likeItineraryItineraryIdGet(requestParameters: LikeItineraryItineraryIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<LikeResponseDto> {
@@ -141,7 +140,7 @@ export class LikeManagementApi extends runtime.BaseAPI {
     }
 
     /**
-     * Adds a like to an itinerary. Users can only like once per itinerary.
+     * Adds a like to an itinerary. Requires authentication. Users can only like once per itinerary.
      * Like an itinerary
      */
     async likeItineraryItineraryIdPostRaw(requestParameters: LikeItineraryItineraryIdPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<LikeDto>> {
@@ -152,21 +151,18 @@ export class LikeManagementApi extends runtime.BaseAPI {
             );
         }
 
-        if (requestParameters['userEmail'] == null) {
-            throw new runtime.RequiredError(
-                'userEmail',
-                'Required parameter "userEmail" was null or undefined when calling likeItineraryItineraryIdPost().'
-            );
-        }
-
         const queryParameters: any = {};
-
-        if (requestParameters['userEmail'] != null) {
-            queryParameters['userEmail'] = requestParameters['userEmail'];
-        }
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("BearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
 
         let urlPath = `/like/itinerary/{itineraryId}`;
         urlPath = urlPath.replace(`{${"itineraryId"}}`, encodeURIComponent(String(requestParameters['itineraryId'])));
@@ -182,7 +178,7 @@ export class LikeManagementApi extends runtime.BaseAPI {
     }
 
     /**
-     * Adds a like to an itinerary. Users can only like once per itinerary.
+     * Adds a like to an itinerary. Requires authentication. Users can only like once per itinerary.
      * Like an itinerary
      */
     async likeItineraryItineraryIdPost(requestParameters: LikeItineraryItineraryIdPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<LikeDto> {
@@ -191,24 +187,24 @@ export class LikeManagementApi extends runtime.BaseAPI {
     }
 
     /**
-     * Retrieves all likes made by a specific user.
+     * Retrieves all likes made by the authenticated user. Requires authentication.
      * Get likes by user
      */
-    async likeUserUserEmailGetRaw(requestParameters: LikeUserUserEmailGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<LikeDto>>> {
-        if (requestParameters['userEmail'] == null) {
-            throw new runtime.RequiredError(
-                'userEmail',
-                'Required parameter "userEmail" was null or undefined when calling likeUserUserEmailGet().'
-            );
-        }
-
+    async likeUserGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<LikeDto>>> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("BearerAuth", []);
 
-        let urlPath = `/like/user/{userEmail}`;
-        urlPath = urlPath.replace(`{${"userEmail"}}`, encodeURIComponent(String(requestParameters['userEmail'])));
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/like/user`;
 
         const response = await this.request({
             path: urlPath,
@@ -221,11 +217,11 @@ export class LikeManagementApi extends runtime.BaseAPI {
     }
 
     /**
-     * Retrieves all likes made by a specific user.
+     * Retrieves all likes made by the authenticated user. Requires authentication.
      * Get likes by user
      */
-    async likeUserUserEmailGet(requestParameters: LikeUserUserEmailGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<LikeDto>> {
-        const response = await this.likeUserUserEmailGetRaw(requestParameters, initOverrides);
+    async likeUserGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<LikeDto>> {
+        const response = await this.likeUserGetRaw(initOverrides);
         return await response.value();
     }
 

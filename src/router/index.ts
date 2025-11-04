@@ -24,21 +24,62 @@ const router = createRouter({
       component: () => import('../views/ProfileView.vue'),
     },
     {
+      path: '/verify-email',
+      name: 'verify-email',
+      meta: { requiresAuth: true, skipVerification: true },
+      component: () => import('../views/EmailVerificationView.vue'),
+    },
+    {
       path: '/register',
       name: 'register',
+      meta: { requiresGuest: true },
       component: () => import('../components/UserRegistration.vue'),
     },
     {
       path: '/login',
       name: 'login',
+      meta: { requiresGuest: true },
       component: () => import('../components/UserLogin.vue'),
+    },
+    {
+      path: '/password-reset',
+      name: 'password-reset',
+      meta: { requiresGuest: true },
+      component: () => import('../views/PasswordResetView.vue'),
     },
   ],
 })
 
-router.beforeEach((to, _from, next) => {
-  const auth = useAuthStore()
-  if (to.meta.requiresAuth && !auth.user) return next('/login')
+router.beforeEach(async (to, _from, next) => {
+  const authStore = useAuthStore()
+  
+  // Wait for Firebase auth to initialize
+  if (!authStore.initialized) {
+    await authStore.initializeAuth()
+  }
+
+  const isAuthenticated = authStore.isAuthenticated
+  const isEmailVerified = authStore.isEmailVerified
+  const requiresAuth = to.meta.requiresAuth
+  const requiresGuest = to.meta.requiresGuest
+  const skipVerification = to.meta.skipVerification
+
+  // Redirect to login if route requires auth and user is not authenticated
+  if (requiresAuth && !isAuthenticated) {
+    return next('/login')
+  }
+
+  // Redirect to home if route requires guest and user is authenticated
+  if (requiresGuest && isAuthenticated) {
+    return next('/')
+  }
+
+  // Hard email verification: redirect to verify-email if authenticated but not verified
+  // (unless the current route explicitly skips verification check)
+  if (isAuthenticated && !isEmailVerified && !skipVerification) {
+    return next('/verify-email')
+  }
+
   next()
 })
 

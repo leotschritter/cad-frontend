@@ -283,7 +283,6 @@
                           <template #prepend>
                             <v-icon :icon="transportIcon(item.value)" />
                           </template>
-                          <v-list-item-title>{{ prettyMode(item.value) }}</v-list-item-title>
                         </v-list-item>
                       </template>
                     </v-select>

@@ -74,9 +74,7 @@ export default defineComponent({
 
       try {
         // Lade alle Likes des aktuellen Users
-        const userLikes = await this.likeApi.likeUserUserEmailGet({
-          userEmail: this.authStore.user.email
-        });
+        const userLikes = await this.likeApi.likeUserGet();
 
         // Lade Like-Count für jede Itinerary
         for (const item of this.feedItems) {
@@ -181,8 +179,7 @@ export default defineComponent({
           item.likes = Math.max(0, (item.likes || 0) - 1);
 
           await this.likeApi.likeItineraryItineraryIdDelete({
-            itineraryId: item.itineraryId,
-            userEmail: this.authStore.user.email
+            itineraryId: item.itineraryId
           });
 
           console.log(`Unliked itinerary ${item.itineraryId}`);
@@ -192,8 +189,7 @@ export default defineComponent({
           item.likes = (item.likes || 0) + 1;
 
           await this.likeApi.likeItineraryItineraryIdPost({
-            itineraryId: item.itineraryId,
-            userEmail: this.authStore.user.email
+            itineraryId: item.itineraryId
           });
 
           console.log(`Liked itinerary ${item.itineraryId}`);

@@ -1,9 +1,9 @@
-<!-- src/components/LoginForm.vue -->
+<!-- src/components/UserLogin.vue -->
 <script lang="ts">
 import { defineComponent } from 'vue'
-import { useUserStore } from "@/stores/user.ts";
 import { useAuthStore } from "@/stores/auth.ts";
-import type { UserDto } from "@/api";
+import { getFirebaseErrorMessage } from '@/utils/firebaseErrors';
+import { getApi } from '@/services/api';
 
 export default defineComponent({
   name: 'UserLogin',
@@ -15,9 +15,11 @@ export default defineComponent({
       errorMsg: null as string | null,
       form: {
         email: '',
+        password: ''
       },
-      userStore: (null as any),
       authStore: (null as any),
+      userApi: getApi('UserManagementApi'),
+      showPassword: false
     }
   },
 
@@ -35,15 +37,35 @@ export default defineComponent({
       this.loading = true
 
       try {
-        const user: UserDto | null = await this.userStore.userLogin(this.form.email)
-        if (user) {
-          this.authStore.login(user)
-          this.$router.push({ name: 'home' })
+        await this.authStore.login(this.form.email, this.form.password)
+        
+        // Sync user to backend database if not already there
+        // (for users who registered before Firebase migration or missed the sync)
+        if (this.authStore.user?.displayName && this.authStore.user?.email) {
+          try {
+            await this.userApi.userRegisterPost({
+              userDto: {
+                name: this.authStore.user.displayName,
+                email: this.authStore.user.email
+              }
+            })
+          } catch (dbError: any) {
+            // Ignore 400 errors (user already exists in database)
+            const status = dbError?.response?.status
+            if (status !== 400) {
+              console.warn('Failed to sync user to backend database:', dbError)
+            }
+          }
+        }
+        
+        // Check if email is verified
+        if (!this.authStore.isEmailVerified) {
+          this.$router.push({ name: 'verify-email' })
         } else {
-          this.errorMsg = 'User not found'
+          this.$router.push({ name: 'home' })
         }
       } catch (err: any) {
-        this.errorMsg = err?.message ?? 'Login failed'
+        this.errorMsg = getFirebaseErrorMessage(err)
       } finally {
         this.loading = false
       }
@@ -57,7 +79,6 @@ export default defineComponent({
     })
   },
   created() {
-    this.userStore = useUserStore()
     this.authStore = useAuthStore()
   }
 })
@@ -94,6 +115,23 @@ export default defineComponent({
                   :rules="[required, emailRule]"
                   autocomplete="email"
               />
+
+              <v-text-field
+                  v-model="form.password"
+                  label="Password"
+                  :type="showPassword ? 'text' : 'password'"
+                  :rules="[required]"
+                  autocomplete="current-password"
+                  :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
+                  @click:append-inner="showPassword = !showPassword"
+              />
+
+              <!-- Forgot Password Link -->
+              <div class="text-right mb-2">
+                <v-btn variant="text" size="small" :to="{ name: 'password-reset' }">
+                  Forgot Password?
+                </v-btn>
+              </div>
 
               <div class="d-flex align-center justify-space-between mt-2">
                 <!-- Redirect to Register component -->
