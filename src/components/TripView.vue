@@ -194,8 +194,8 @@ async function onGeocodeRequest(idx: number, query: string) {
 
 /**
  * Save all locations to the backend, including uploading any pending images
- * Strategy: Delete all existing locations, then recreate them with current state
- * This ensures order, renames, and all changes are properly saved
+ * Strategy: Add only new locations (those not already in the backend)
+ * Existing locations are preserved
  */
 async function saveAllLocations(): Promise<boolean> {
   console.log('saveAllLocations called')
@@ -217,26 +217,21 @@ async function saveAllLocations(): Promise<boolean> {
     const existingLocations = await locationStore.getLocationsForItinerary(props.itineraryId)
     console.log('Found', existingLocations.length, 'existing locations')
 
-    // Step 2: Delete all existing locations
-    console.log('Step 2: Deleting all existing locations...')
-    for (const existingLoc of existingLocations) {
-      if (existingLoc.id) {
-        console.log('Deleting location ID:', existingLoc.id, 'Name:', existingLoc.name)
-        const deleted = await locationStore.deleteLocation(existingLoc.id)
-        if (!deleted) {
-          console.warn('Failed to delete location:', existingLoc.id)
-        }
-      }
-    }
-    console.log('All existing locations deleted')
-
-    // Step 3: Create all locations fresh with current state
-    console.log('Step 3: Creating all locations with current state...')
+    // Step 2: Add only new locations (those without a backend ID)
+    console.log('Step 2: Adding new locations...')
     for (let i = 0; i < locations.value.length; i++) {
       const loc = locations.value[i]
       if (!loc) continue
 
-      console.log(`Creating location ${i + 1}/${locations.value.length}:`, loc.name)
+      // Check if this location already exists in the backend
+      const existsInBackend = existingLocations.some(existing => existing.id === loc.id)
+
+      if (existsInBackend) {
+        console.log(`Skipping existing location ${i + 1}/${locations.value.length}:`, loc.name, `(ID: ${loc.id})`)
+        continue
+      }
+
+      console.log(`Creating new location ${i + 1}/${locations.value.length}:`, loc.name)
 
       // Log file information if there are pending files
       if (loc.pendingFiles && loc.pendingFiles.length > 0) {
@@ -296,7 +291,7 @@ async function saveAllLocations(): Promise<boolean> {
       }
     }
 
-    console.log('All locations recreated. Success:', success)
+    console.log('All new locations added. Success:', success)
     return success
   } catch (error) {
     console.error('Error saving locations:', error)
