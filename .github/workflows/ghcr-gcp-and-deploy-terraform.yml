@@ -13,6 +13,9 @@ on:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    environment: Pipeline
+    env:
+      PROJECT_ID: ${{ vars.PROJECT_ID }}
     permissions:
       contents: read
       packages: write
@@ -65,7 +68,7 @@ jobs:
 
       - name: Export image reference
         id: export_image
-        run: echo "frontend_image=europe-west1-docker.pkg.dev/${{ secrets.PROJECT_ID }}/docker-repo/travel-frontend:${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+        run: echo "frontend_image=europe-west1-docker.pkg.dev/${PROJECT_ID}/docker-repo/travel-frontend:${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
 
       - name: Export app version
         id: export_app_version
