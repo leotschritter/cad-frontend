@@ -52,10 +52,9 @@ export type Locations = {
   shortDescription?: string | null
   images?: string[]
   pendingFiles?: File[]  // Files staged for upload
-  transport: { mode: string | null; duration: string | null; distance: string | null }
+  transport: { mode: string | null; duration: number | null; distance: number | null }
   accommodation: null | {
     name: string
-    address?: string
     url?: string
     image?: string
     pricePerNight?: string
@@ -117,32 +116,43 @@ async function loadLocations() {
       address: null,
       shortDescription: loc.description || null,
       images: loc.imageUrls || [],
-      transport: { mode: null, duration: null, distance: null },
-      accommodation: null
+      transport: {
+        mode: loc.transportDto?.transportType || null,
+        duration: loc.transportDto?.duration ?? null,
+        distance: loc.transportDto?.distance ?? null
+      },
+      accommodation: loc.accommodationDto ? {
+        name: loc.accommodationDto.name || '',
+        url: loc.accommodationDto.bookingPageUrl || undefined,
+        image: loc.accommodationDto.accommodationImageUrl || undefined,
+        pricePerNight: loc.accommodationDto.pricePerNight ? `${loc.accommodationDto.pricePerNight}` : undefined,
+        rating: loc.accommodationDto.rating ?? undefined,
+        notes: loc.accommodationDto.notes || undefined
+      } : null
     }))
 
     // After loading, geocode all locations to get their coordinates for the map
     console.log('Geocoding loaded locations...')
     for (let i = 0; i < locations.value.length; i++) {
-      const location = locations.value[i]
-      if (location.name) {
-        try {
-          const hit = await geocode(location.name)
-          if (hit) {
-            console.log(`Geocoded ${location.name}:`, hit.lat, hit.lng)
-            location.lat = hit.lat
-            location.lng = hit.lng
-            location.address = hit.display
-          } else {
-            console.warn(`Could not geocode location: ${location.name}`)
-          }
-        } catch (error) {
-          console.error(`Error geocoding ${location.name}:`, error)
+      const loc = locations.value[i]
+      if (!loc || !loc.name) continue
+
+      try {
+        const hit = await geocode(loc.name)
+        if (hit) {
+          console.log(`Geocoded ${loc.name}:`, hit.lat, hit.lng)
+          loc.lat = hit.lat
+          loc.lng = hit.lng
+          loc.address = hit.display
+        } else {
+          console.warn(`Could not geocode location: ${loc.name}`)
         }
-        // Small delay to avoid overwhelming the Nominatim API
-        if (i < locations.value.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 1000))
-        }
+      } catch (error) {
+        console.error(`Error geocoding ${loc.name}:`, error)
+      }
+      // Small delay to avoid overwhelming the Nominatim API
+      if (i < locations.value.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 1000))
       }
     }
     console.log('Geocoding complete')
@@ -223,40 +233,66 @@ async function saveAllLocations(): Promise<boolean> {
     // Step 3: Create all locations fresh with current state
     console.log('Step 3: Creating all locations with current state...')
     for (let i = 0; i < locations.value.length; i++) {
-      const location = locations.value[i]
-      console.log(`Creating location ${i + 1}/${locations.value.length}:`, location.name)
+      const loc = locations.value[i]
+      if (!loc) continue
+
+      console.log(`Creating location ${i + 1}/${locations.value.length}:`, loc.name)
 
       // Log file information if there are pending files
-      if (location.pendingFiles && location.pendingFiles.length > 0) {
-        console.log(`  - Uploading ${location.pendingFiles.length} file(s)`)
-        location.pendingFiles.forEach((file, idx) => {
+      if (loc.pendingFiles && loc.pendingFiles.length > 0) {
+        console.log(`  - Uploading ${loc.pendingFiles.length} file(s)`)
+        loc.pendingFiles.forEach((file, idx) => {
           console.log(`    File ${idx + 1}: ${file.name} (${file.size} bytes, ${file.type})`)
         })
       }
 
+      // Parse transport data
+      const transportType = loc.transport?.mode || undefined
+      const transportDuration = loc.transport?.duration ?? undefined
+      const transportDistance = loc.transport?.distance ?? undefined
+
+      // Parse accommodation data
+      const accommodationName = loc.accommodation?.name || undefined
+      const accommodationPricePerNight = loc.accommodation?.pricePerNight
+        ? parseFloat(loc.accommodation.pricePerNight)
+        : undefined
+      const accommodationRating = loc.accommodation?.rating || undefined
+      const accommodationNotes = loc.accommodation?.notes || undefined
+      const accommodationImageUrl = loc.accommodation?.image || undefined
+      const bookingPageUrl = loc.accommodation?.url || undefined
+
       // Create new location in backend
       const newLocation = await locationStore.addLocationToItinerary({
         itineraryId: props.itineraryId,
-        name: location.name,
-        description: location.shortDescription || undefined,
-        fromDate: new Date(location.start),
-        toDate: new Date(location.end),
-        files: location.pendingFiles || []
+        name: loc.name,
+        description: loc.shortDescription || undefined,
+        fromDate: new Date(loc.start),
+        toDate: new Date(loc.end),
+        files: loc.pendingFiles || [],
+        transportType,
+        transportDuration,
+        transportDistance,
+        accommodationName,
+        accommodationPricePerNight,
+        accommodationRating,
+        accommodationNotes,
+        accommodationImageUrl,
+        bookingPageUrl
       })
 
       if (newLocation) {
         console.log('Location created successfully with ID:', newLocation.id)
         // Update the local ID with the backend ID
-        location.id = newLocation.id!
+        loc.id = newLocation.id!
         // Clear pending files since they've been uploaded
-        location.pendingFiles = []
+        loc.pendingFiles = []
         // Update images with the actual URLs from backend
         if (newLocation.imageUrls) {
-          location.images = newLocation.imageUrls
+          loc.images = newLocation.imageUrls
         }
       } else {
         success = false
-        console.error(`Failed to create location: ${location.name}`)
+        console.error(`Failed to create location: ${loc.name}`)
       }
     }
 
