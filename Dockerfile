@@ -17,6 +17,14 @@ COPY . .
 ARG VITE_API_BASE_URL=http://localhost:8080
 ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
 
+ARG VITE_FIREBASE_API_KEY
+ARG VITE_FIREBASE_AUTH_DOMAIN
+ARG VITE_FIREBASE_PROJECT_ID
+
+ENV VITE_FIREBASE_API_KEY=$VITE_FIREBASE_API_KEY
+ENV VITE_FIREBASE_AUTH_DOMAIN=$VITE_FIREBASE_AUTH_DOMAIN
+ENV VITE_FIREBASE_PROJECT_ID=$VITE_FIREBASE_PROJECT_ID
+
 # Type-check + build (your "build" calls type-check + vite build)
 ARG VITE_BASE=/
 ENV BASE_URL=${VITE_BASE}
@@ -37,4 +45,11 @@ RUN printf 'server { \
 }\n' > /etc/nginx/conf.d/default.conf.template
 
 # Use envsubst to replace $PORT at runtime, then start nginx
-CMD /bin/sh -c "envsubst '\$PORT' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
+CMD /bin/sh -c "envsubst '\
+  \$PORT \
+  \$VITE_FIREBASE_API_KEY \
+  \$VITE_FIREBASE_AUTH_DOMAIN \
+  \$VITE_FIREBASE_PROJECT_ID \
+  \$VITE_API_BASE_URL \
+' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf \
+&& nginx -g 'daemon off;'"
