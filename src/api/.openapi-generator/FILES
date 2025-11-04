@@ -6,6 +6,7 @@ apis/LocationManagementApi.ts
 apis/UserManagementApi.ts
 apis/index.ts
 index.ts
+models/AccommodationDto.ts
 models/AuthenticatedUser.ts
 models/CommentDto.ts
 models/CommentRequest.ts
@@ -21,6 +22,7 @@ models/MessageResponseDto1.ts
 models/MessageResponseDto2.ts
 models/ProfileImageResponseDto.ts
 models/ProfileImageUploadResponseDto.ts
+models/TransportDto.ts
 models/UserDto.ts
 models/index.ts
 runtime.ts

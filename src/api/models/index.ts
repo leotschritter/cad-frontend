@@ -1,5 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
+export * from './AccommodationDto';
 export * from './AuthenticatedUser';
 export * from './CommentDto';
 export * from './CommentRequest';
@@ -15,4 +16,5 @@ export * from './MessageResponseDto1';
 export * from './MessageResponseDto2';
 export * from './ProfileImageResponseDto';
 export * from './ProfileImageUploadResponseDto';
+export * from './TransportDto';
 export * from './UserDto';
