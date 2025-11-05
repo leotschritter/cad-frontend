@@ -8,6 +8,7 @@ on:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    environment: Pipeline
     permissions:
       contents: read
       packages: write
@@ -29,6 +30,9 @@ jobs:
           push: true
           build-args: |
             VITE_API_BASE_URL=https://tripico.duckdns.org/api
+            VITE_FIREBASE_PROJECT_ID=${{ vars.VITE_FIREBASE_PROJECT_ID_2 }}
+            VITE_FIREBASE_AUTH_DOMAIN=${{ vars.VITE_FIREBASE_AUTH_DOMAIN_2 }}
+            VITE_FIREBASE_API_KEY=${{ vars.VITE_FIREBASE_API_KEY_2 }}
           tags: |
             ghcr.io/${{ github.repository }}:iaas-latest
             ghcr.io/${{ github.repository }}:iaas-${{ github.sha }}
