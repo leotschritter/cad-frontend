@@ -2,7 +2,6 @@
 import { defineComponent } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useUserStore } from "@/stores/user.ts";
-import { updateProfile } from 'firebase/auth';
 
 export default defineComponent({
   name: 'ProfileView',
@@ -25,14 +24,16 @@ export default defineComponent({
       return this.authStore.user?.email || ''
     },
     profileImageUrl(): string {
-      return this.authStore.user?.photoURL || 'https://randomuser.me/api/portraits/lego/1.jpg'
+      return this.authStore.getProfileImageUrl
     },
     currentProfileImage(): string {
       // Use the preview if available (user selected a new image), otherwise use the profile image URL
       return this.imagePreview || this.profileImageUrl
     },
   },
-  mounted() {
+  async mounted() {
+    // Fetch fresh profile image URL from backend
+    await this.authStore.fetchProfileImageUrl()
     // Initialize the preview with the current profile image
     this.imagePreview = this.profileImageUrl
   },
@@ -82,16 +83,11 @@ export default defineComponent({
         })
 
         if (imageUrl) {
-          // Update Firebase user profile with the new photo URL
-          await updateProfile(this.authStore.user, {
-            photoURL: imageUrl
-          })
-
-          // Reload user to get updated profile
-          await this.authStore.reloadUser()
+          // Fetch fresh profile image URL from backend (includes new signed URL)
+          await this.authStore.fetchProfileImageUrl()
 
           // Update preview to show the new uploaded image
-          this.imagePreview = imageUrl
+          this.imagePreview = this.authStore.getProfileImageUrl
 
           // Clear the file input and reset the hidden file input element
           this.imageFile = null

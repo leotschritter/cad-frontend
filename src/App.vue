@@ -26,7 +26,7 @@ export default defineComponent({
       return this.authStore?.user?.displayName ?? 'Log in to see name'
     },
     getProfileImageUrl(): string {
-      return this.authStore?.user?.photoURL ?? 'https://randomuser.me/api/portraits/lego/1.jpg'
+      return this.authStore?.getProfileImageUrl ?? 'https://randomuser.me/api/portraits/lego/1.jpg'
     },
     isLoggedIn(): boolean {
       return this.authStore?.isAuthenticated ?? false;

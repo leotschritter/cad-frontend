@@ -1,20 +1,22 @@
 // src/stores/auth.ts
-import { defineStore } from 'pinia';
+import { defineStore } from 'pinia'
 import {
-  signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
-  signOut,
   onAuthStateChanged,
-  updateProfile,
   sendEmailVerification,
+  signInWithEmailAndPassword,
+  signOut,
+  updateProfile,
   type User
-} from 'firebase/auth';
-import { auth } from '@/config/firebase';
+} from 'firebase/auth'
+import { auth } from '@/config/firebase'
+import { useUserStore } from '@/stores/user'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     user: null as User | null,
     idToken: null as string | null,
+    profileImageUrl: null as string | null,
     loading: false,
     error: null as string | null,
     initialized: false
@@ -23,7 +25,8 @@ export const useAuthStore = defineStore('auth', {
   getters: {
     isAuthenticated: (state) => state.user !== null,
     isEmailVerified: (state) => state.user?.emailVerified ?? false,
-    getIdToken: (state) => state.idToken
+    getIdToken: (state) => state.idToken,
+    getProfileImageUrl: (state) => state.profileImageUrl || 'https://randomuser.me/api/portraits/lego/1.jpg'
   },
 
   actions: {
@@ -37,8 +40,11 @@ export const useAuthStore = defineStore('auth', {
           this.user = firebaseUser;
           if (firebaseUser) {
             this.idToken = await firebaseUser.getIdToken();
+            // Fetch profile image URL from backend
+            await this.fetchProfileImageUrl();
           } else {
             this.idToken = null;
+            this.profileImageUrl = null;
           }
           this.initialized = true;
           resolve();
@@ -54,7 +60,7 @@ export const useAuthStore = defineStore('auth', {
       this.error = null;
       try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        
+
         // Update the user profile with display name
         await updateProfile(userCredential.user, {
           displayName: displayName
@@ -82,6 +88,8 @@ export const useAuthStore = defineStore('auth', {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         this.user = userCredential.user;
         this.idToken = await userCredential.user.getIdToken();
+        // Fetch profile image URL from backend
+        await this.fetchProfileImageUrl();
       } catch (error: any) {
         this.error = error.message;
         throw error;
@@ -99,6 +107,7 @@ export const useAuthStore = defineStore('auth', {
         await signOut(auth);
         this.user = null;
         this.idToken = null;
+        this.profileImageUrl = null;
       } catch (error: any) {
         this.error = error.message;
         throw error;
@@ -132,6 +141,22 @@ export const useAuthStore = defineStore('auth', {
       if (this.user) {
         await this.user.reload();
         this.user = auth.currentUser;
+        // Refresh profile image URL from backend
+        await this.fetchProfileImageUrl();
+      }
+    },
+
+    /**
+     * Fetch profile image URL from backend
+     */
+    async fetchProfileImageUrl(): Promise<void> {
+      try {
+        const userStore = useUserStore();
+
+        this.profileImageUrl = await userStore.userGetProfileImage();
+      } catch (error) {
+        console.error('Error fetching profile image URL:', error);
+        this.profileImageUrl = null;
       }
     }
   }
