@@ -74,11 +74,11 @@ router.beforeEach(async (to, _from, next) => {
     return next('/')
   }
 
-  // Hard email verification: redirect to verify-email if authenticated but not verified
-  // (unless the current route explicitly skips verification check)
-  if (isAuthenticated && !isEmailVerified && !skipVerification) {
-    return next('/verify-email')
-  }
+  // Email verification disabled - users can log in without verifying
+  // Uncomment below to re-enable email verification requirement:
+  // if (isAuthenticated && !isEmailVerified && !skipVerification) {
+  //   return next('/verify-email')
+  // }
 
   next()
 })

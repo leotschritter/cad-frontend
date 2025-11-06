@@ -58,12 +58,8 @@ export default defineComponent({
           }
         }
         
-        // Check if email is verified
-        if (!this.authStore.isEmailVerified) {
-          this.$router.push({ name: 'verify-email' })
-        } else {
-          this.$router.push({ name: 'home' })
-        }
+        // Email verification disabled - go straight to home
+        this.$router.push({ name: 'home' })
       } catch (err: any) {
         this.errorMsg = getFirebaseErrorMessage(err)
       } finally {

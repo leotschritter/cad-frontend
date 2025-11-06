@@ -40,8 +40,12 @@ export const useAuthStore = defineStore('auth', {
           this.user = firebaseUser;
           if (firebaseUser) {
             this.idToken = await firebaseUser.getIdToken();
-            // Fetch profile image URL from backend
-            await this.fetchProfileImageUrl();
+            
+            // Fetch profile image URL from backend (non-blocking)
+            // Don't let backend errors prevent auth initialization
+            this.fetchProfileImageUrl().catch(err => {
+              console.warn('Profile image fetch failed during auth init, but auth initialized:', err);
+            });
           } else {
             this.idToken = null;
             this.profileImageUrl = null;
@@ -88,8 +92,12 @@ export const useAuthStore = defineStore('auth', {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         this.user = userCredential.user;
         this.idToken = await userCredential.user.getIdToken();
-        // Fetch profile image URL from backend
-        await this.fetchProfileImageUrl();
+        
+        // Fetch profile image URL from backend (non-blocking)
+        // Don't let backend errors prevent login
+        this.fetchProfileImageUrl().catch(err => {
+          console.warn('Profile image fetch failed during login, but login succeeded:', err);
+        });
       } catch (error: any) {
         this.error = error.message;
         throw error;
@@ -129,8 +137,35 @@ export const useAuthStore = defineStore('auth', {
      * Send email verification to the current user
      */
     async sendVerificationEmail(): Promise<void> {
-      if (this.user && !this.user.emailVerified) {
-        await sendEmailVerification(this.user);
+      if (!this.user) {
+        const error = 'Cannot send verification email: No user is currently signed in';
+        console.error(error);
+        throw new Error(error);
+      }
+      
+      if (this.user.emailVerified) {
+        console.warn('Email is already verified, skipping verification email');
+        return;
+      }
+
+      try {
+        console.log('Sending verification email to:', this.user.email);
+        
+        // Note: actionCodeSettings requires the domain to be allowlisted in Firebase Console
+        // Go to Firebase Console → Authentication → Settings → Authorized domains
+        // Add: localhost (for development) and your production domain
+        const actionCodeSettings = {
+          url: window.location.origin + '/verify-email',
+          handleCodeInApp: false
+        };
+        
+        await sendEmailVerification(this.user, actionCodeSettings);
+        console.log('Verification email sent successfully');
+      } catch (error: any) {
+        console.error('Failed to send verification email:', error);
+        console.error('Error code:', error.code);
+        console.error('Error message:', error.message);
+        throw new Error(`Failed to send verification email: ${error.message || error}`);
       }
     },
 
@@ -141,8 +176,12 @@ export const useAuthStore = defineStore('auth', {
       if (this.user) {
         await this.user.reload();
         this.user = auth.currentUser;
-        // Refresh profile image URL from backend
-        await this.fetchProfileImageUrl();
+        
+        // Refresh profile image URL from backend (non-blocking)
+        // Don't let backend errors prevent user reload
+        this.fetchProfileImageUrl().catch(err => {
+          console.warn('Profile image fetch failed during user reload, but reload succeeded:', err);
+        });
       }
     },
 
@@ -150,12 +189,19 @@ export const useAuthStore = defineStore('auth', {
      * Fetch profile image URL from backend
      */
     async fetchProfileImageUrl(): Promise<void> {
+      // Only attempt to fetch if we have a user
+      if (!this.user) {
+        this.profileImageUrl = null;
+        return;
+      }
+
       try {
         const userStore = useUserStore();
-
         this.profileImageUrl = await userStore.userGetProfileImage();
-      } catch (error) {
-        console.error('Error fetching profile image URL:', error);
+        console.log('Profile image fetched successfully');
+      } catch (error: any) {
+        // Backend errors should not break the auth flow
+        // Silently fail - don't spam console on every poll
         this.profileImageUrl = null;
       }
     }

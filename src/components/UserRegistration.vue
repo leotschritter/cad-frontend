@@ -45,27 +45,33 @@ export default defineComponent({
         const displayName = `${this.form.firstName} ${this.form.lastName}`
         
         // 1. Register with Firebase (creates Firebase Auth user)
+        console.log('Starting Firebase registration...')
         await this.authStore.register(this.form.email, this.form.password, displayName)
+        console.log('Firebase registration successful')
         
         // 2. Create user in backend database (for profile images, etc.)
         try {
+          console.log('Syncing user to backend database...')
           await this.userApi.userRegisterPost({
             userDto: {
               name: displayName,
               email: this.form.email
             }
           })
+          console.log('Backend database sync successful')
         } catch (dbError: any) {
           // Log but don't fail - Firebase user is already created
-          console.warn('Failed to sync user to backend database:', dbError)
+          const status = dbError?.response?.status || 'Unknown'
+          const message = dbError?.message || 'Unknown error'
+          console.warn(`Failed to sync user to backend database (HTTP ${status}): ${message}`)
+          console.warn('This is non-critical - continuing with Firebase auth only')
         }
         
-        // 3. Send verification email
-        await this.authStore.sendVerificationEmail()
-        
-        // 4. Redirect to verification page
-        this.$router.push({ name: 'verify-email' })
+        // Email verification disabled - skip sending email and go straight to home
+        console.log('Email verification disabled - redirecting to home')
+        this.$router.push({ name: 'home' })
       } catch (err: any) {
+        console.error('Registration failed:', err)
         this.errorMsg = getFirebaseErrorMessage(err)
       } finally {
         this.loading = false
