@@ -2,7 +2,7 @@ name: docker-ghcr
 
 on:
   push:
-    branches: [ new-iaas-deploy ]
+    branches: [  "feature/exercise5-iaas" ]
   workflow_dispatch:
 
 jobs:
