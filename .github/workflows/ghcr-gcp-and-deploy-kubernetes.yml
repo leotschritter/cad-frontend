@@ -115,20 +115,26 @@ jobs:
           kubectl wait --for=condition=Available --timeout=300s \
             deployment/cert-manager-cainjector -n cert-manager
           
-          echo "Waiting for all pods to be ready..."
-          kubectl wait --for=condition=Ready --timeout=180s \
-            pods -l app=cert-manager -n cert-manager
-          kubectl wait --for=condition=Ready --timeout=180s \
-            pods -l app=webhook -n cert-manager
-          kubectl wait --for=condition=Ready --timeout=180s \
-            pods -l app=cainjector -n cert-manager
+          echo "Checking actual pod labels..."
+          kubectl -n cert-manager get pods --show-labels
           
-          echo "Waiting additional 45 seconds for webhook TLS certificate generation..."
-          sleep 45
+          echo "Waiting for all pods to be ready using correct labels..."
+          kubectl wait --for=condition=Ready --timeout=180s \
+            pods -l app.kubernetes.io/name=cert-manager -n cert-manager || echo "Main cert-manager pod ready check timed out"
+          kubectl wait --for=condition=Ready --timeout=180s \
+            pods -l app.kubernetes.io/name=webhook -n cert-manager || echo "Webhook pod ready check timed out"
+          kubectl wait --for=condition=Ready --timeout=180s \
+            pods -l app.kubernetes.io/name=cainjector -n cert-manager || echo "Cainjector pod ready check timed out"
+          
+          echo "Checking webhook pod status..."
+          kubectl -n cert-manager get pods -l app.kubernetes.io/name=webhook
+          kubectl -n cert-manager describe pods -l app.kubernetes.io/name=webhook || true
+          
+          echo "Waiting additional 60 seconds for webhook TLS certificate generation..."
+          sleep 60
           
           echo "Verifying cert-manager webhook is ready..."
-          kubectl -n cert-manager get pods -l app=webhook
-          kubectl -n cert-manager logs -l app=webhook --tail=30 || true
+          kubectl -n cert-manager logs -l app.kubernetes.io/name=webhook --tail=50 || true
 
       # Apply cert-manager ClusterIssuers with retry logic
       - name: Apply cert-manager ClusterIssuers
@@ -154,12 +160,12 @@ jobs:
                 sleep $wait_time
                 
                 echo "Checking webhook status..."
-                kubectl -n cert-manager get pods -l app=webhook
-                kubectl -n cert-manager describe pods -l app=webhook | grep -A 10 "Events:" || true
+                kubectl -n cert-manager get pods -l app.kubernetes.io/name=webhook
+                kubectl -n cert-manager describe pods -l app.kubernetes.io/name=webhook | grep -A 10 "Events:" || true
               else
                 echo "✗ Failed to apply ClusterIssuers after $max_attempts attempts"
                 echo "Dumping cert-manager webhook logs for debugging:"
-                kubectl -n cert-manager logs -l app=webhook --tail=100
+                kubectl -n cert-manager logs -l app.kubernetes.io/name=webhook --tail=100 || true
                 exit 1
               fi
             fi
