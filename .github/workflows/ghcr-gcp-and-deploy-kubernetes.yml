@@ -99,23 +99,77 @@ jobs:
       # Install cert-manager for TLS certificate management
       - name: Install cert-manager
         run: |
-          echo "Installing cert-manager..."
-          kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.3/cert-manager.yaml
+          echo "Checking if cert-manager is already installed..."
+          if kubectl get namespace cert-manager >/dev/null 2>&1 && kubectl get deployment cert-manager -n cert-manager >/dev/null 2>&1; then
+            echo "cert-manager is already installed"
+          else
+            echo "Installing cert-manager..."
+            kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.3/cert-manager.yaml
+          fi
           
-          echo "Waiting for cert-manager to be ready..."
+          echo "Waiting for cert-manager deployments to be ready..."
           kubectl wait --for=condition=Available --timeout=300s \
-            deployment/cert-manager -n cert-manager || echo "cert-manager deployment not ready yet"
+            deployment/cert-manager -n cert-manager
           kubectl wait --for=condition=Available --timeout=300s \
-            deployment/cert-manager-webhook -n cert-manager || echo "cert-manager-webhook not ready yet"
+            deployment/cert-manager-webhook -n cert-manager
           kubectl wait --for=condition=Available --timeout=300s \
-            deployment/cert-manager-cainjector -n cert-manager || echo "cert-manager-cainjector not ready yet"
+            deployment/cert-manager-cainjector -n cert-manager
+          
+          echo "Waiting for all pods to be ready..."
+          kubectl wait --for=condition=Ready --timeout=180s \
+            pods -l app=cert-manager -n cert-manager
+          kubectl wait --for=condition=Ready --timeout=180s \
+            pods -l app=webhook -n cert-manager
+          kubectl wait --for=condition=Ready --timeout=180s \
+            pods -l app=cainjector -n cert-manager
+          
+          echo "Waiting additional 45 seconds for webhook TLS certificate generation..."
+          sleep 45
+          
+          echo "Verifying cert-manager webhook is ready..."
+          kubectl -n cert-manager get pods -l app=webhook
+          kubectl -n cert-manager logs -l app=webhook --tail=30 || true
 
-      # Apply cert-manager ClusterIssuers
+      # Apply cert-manager ClusterIssuers with retry logic
       - name: Apply cert-manager ClusterIssuers
         working-directory: ./k8s
         run: |
-          echo "Applying Let's Encrypt ClusterIssuers..."
-          kubectl apply -f cert-manager.yaml
+          echo "Applying Let's Encrypt ClusterIssuers with retry logic..."
+          max_attempts=6
+          attempt=1
+          success=false
+          
+          while [ $attempt -le $max_attempts ]; do
+            echo "Attempt $attempt of $max_attempts..."
+            
+            if kubectl apply -f cert-manager.yaml 2>&1; then
+              echo "✓ Successfully applied ClusterIssuers"
+              success=true
+              break
+            else
+              if [ $attempt -lt $max_attempts ]; then
+                wait_time=$((15 * attempt))
+                echo "✗ Failed to apply ClusterIssuers"
+                echo "Waiting ${wait_time} seconds before retry..."
+                sleep $wait_time
+                
+                echo "Checking webhook status..."
+                kubectl -n cert-manager get pods -l app=webhook
+                kubectl -n cert-manager describe pods -l app=webhook | grep -A 10 "Events:" || true
+              else
+                echo "✗ Failed to apply ClusterIssuers after $max_attempts attempts"
+                echo "Dumping cert-manager webhook logs for debugging:"
+                kubectl -n cert-manager logs -l app=webhook --tail=100
+                exit 1
+              fi
+            fi
+            attempt=$((attempt + 1))
+          done
+          
+          if [ "$success" = true ]; then
+            echo "Verifying ClusterIssuers were created..."
+            kubectl get clusterissuers
+          fi
 
       # Install/update ingress-nginx controller
       - name: Install ingress-nginx controller
