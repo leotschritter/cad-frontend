@@ -4,10 +4,17 @@ metadata:
   name: cad-frontend-ingress
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /$1
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
 spec:
   ingressClassName: nginx
+  tls:
+    - hosts:
+        - frontend.tripico.fun
+      secretName: frontend-tls
   rules:
-    - host: tripico.fun
+    - host: frontend.tripico.fun
       http:
         paths:
           - path: /(.*)
