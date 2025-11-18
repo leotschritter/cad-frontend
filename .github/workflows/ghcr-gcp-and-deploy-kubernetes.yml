@@ -96,22 +96,85 @@ jobs:
         run: |
           gcloud container clusters get-credentials tripico-cluster --region europe-west1
 
-      # Apply any updated manifests
+      # Install cert-manager for TLS certificate management
+      - name: Install cert-manager
+        run: |
+          echo "Installing cert-manager..."
+          kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.3/cert-manager.yaml
+          
+          echo "Waiting for cert-manager to be ready..."
+          kubectl wait --for=condition=Available --timeout=300s \
+            deployment/cert-manager -n cert-manager || echo "cert-manager deployment not ready yet"
+          kubectl wait --for=condition=Available --timeout=300s \
+            deployment/cert-manager-webhook -n cert-manager || echo "cert-manager-webhook not ready yet"
+          kubectl wait --for=condition=Available --timeout=300s \
+            deployment/cert-manager-cainjector -n cert-manager || echo "cert-manager-cainjector not ready yet"
+
+      # Apply cert-manager ClusterIssuers
+      - name: Apply cert-manager ClusterIssuers
+        working-directory: ./k8s
+        run: |
+          echo "Applying Let's Encrypt ClusterIssuers..."
+          kubectl apply -f cert-manager.yaml
+
+      # Install/update ingress-nginx controller
+      - name: Install ingress-nginx controller
+        run: |
+          echo "Installing/updating ingress-nginx controller..."
+          kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
+          
+          echo "Waiting for ingress-nginx to be ready..."
+          kubectl wait --for=condition=Available --timeout=300s \
+            deployment/ingress-nginx-controller -n ingress-nginx || echo "Ingress controller may already be running"
+
+      # Create/update secrets and config maps
+      - name: Create Firebase secrets
+        run: |
+          echo "Creating/updating Firebase secrets..."
+          kubectl create secret generic firebase-secret \
+            --from-literal=VITE_FIREBASE_API_KEY="${{ vars.VITE_FIREBASE_API_KEY }}" \
+            --from-literal=VITE_FIREBASE_AUTH_DOMAIN="${{ vars.VITE_FIREBASE_AUTH_DOMAIN }}" \
+            --from-literal=VITE_FIREBASE_PROJECT_ID="${{ vars.VITE_FIREBASE_PROJECT_ID }}" \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Create frontend config
+        run: |
+          echo "Creating/updating frontend config..."
+          kubectl create configmap cad-frontend-config \
+            --from-literal=VITE_API_BASE_URL="https://api.tripico.fun" \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      # Apply application manifests
       - name: Apply Kubernetes Manifests
         working-directory: ./k8s
         run: |
           kubectl apply -f cad-frontend.yaml
           kubectl apply -f ingress-prod.yaml
-          kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
 
       # Update deployment image dynamically
       - name: Patch deployment with new image
         run: |
-          kubectl set image deployment/travel-warnings-api travel-warnings-api=${{ needs.build-and-push.outputs.frontend_image }}
+          echo "Updating deployment with new image: ${{ needs.build-and-push.outputs.frontend_image }}"
+          kubectl set image deployment/cad-frontend cad-frontend=${{ needs.build-and-push.outputs.frontend_image }}
 
       - name: Wait for rollout
         run: |
+          echo "Waiting for deployment rollout..."
           kubectl rollout status deployment/cad-frontend --timeout=120s
 
       - name: Show pod status
         run: kubectl get pods -o wide
+
+      # Check certificate status
+      - name: Check TLS certificate status
+        run: |
+          echo "Checking certificate status..."
+          sleep 10
+          kubectl get certificate -A || echo "No certificates found yet"
+          kubectl describe certificate frontend-tripico-fun-tls 2>/dev/null || echo "Certificate not yet created - it may take a few minutes"
+          
+          echo ""
+          echo "=== Deployment Complete ==="
+          echo "Frontend should be accessible at: https://frontend.tripico.fun"
+          echo "Certificate issuance may take 1-3 minutes if this is the first deployment"
+
