@@ -8,7 +8,7 @@ spec:
     # Let's Encrypt production server
     server: https://acme-v02.api.letsencrypt.org/directory
     # Email for certificate expiration notifications
-    email: tripico-cert-manager.yopmail.com
+    email: tripico-cert-manager@yopmail.com
     privateKeySecretRef:
       name: letsencrypt-prod-key
     solvers:
