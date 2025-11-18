@@ -1,0 +1,117 @@
+name: Docker push to GHCR and GCP Artifact Registry and deploy Frontend Infrastructure
+
+on:
+  push:
+    branches: [ "main", "feature/exercise7-leo"  ]
+    tags: [ 'v*.*.*' ]
+  workflow_dispatch:
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    environment: Pipeline
+    env:
+      PROJECT_ID: ${{ vars.PROJECT_ID }}
+    permissions:
+      contents: read
+      packages: write
+      id-token: write  # needed for GCP Workload Identity
+
+    outputs:
+      frontend_image: ${{ steps.export_image.outputs.frontend_image }}
+      app_version: ${{ steps.export_app_version.outputs.app_version }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Login to GitHub Container Registry
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Login to Google Artifact Registry
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for GCP
+        run: gcloud auth configure-docker europe-west1-docker.pkg.dev
+
+      # Build and push to both registries
+      - name: Build and push to GHCR and GCP
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          build-args: |
+            VITE_API_BASE_URL=https://api.tripico.fun
+            VITE_FIREBASE_API_KEY=${{ vars.VITE_FIREBASE_API_KEY }}
+            VITE_FIREBASE_AUTH_DOMAIN=${{ vars.VITE_FIREBASE_AUTH_DOMAIN }}
+            VITE_FIREBASE_PROJECT_ID=${{ vars.VITE_FIREBASE_PROJECT_ID }}
+          tags: |
+            ghcr.io/${{ github.repository }}:latest
+            ghcr.io/${{ github.repository }}:${{ github.sha }}
+            europe-west1-docker.pkg.dev/${{ vars.PROJECT_ID }}/docker-repo/travel-frontend:latest
+            europe-west1-docker.pkg.dev/${{ vars.PROJECT_ID }}/docker-repo/travel-frontend:${{ github.sha }}
+
+      - name: Export image reference
+        id: export_image
+        run: echo "frontend_image=europe-west1-docker.pkg.dev/${PROJECT_ID}/docker-repo/travel-frontend:${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Export app version
+        id: export_app_version
+        run: echo "app_version=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Authenticate again for kubectl
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Install GKE Auth Plugin
+        run: |
+          gcloud components install gke-gcloud-auth-plugin --quiet
+
+      - name: Configure kubectl for GKE
+        run: |
+          gcloud container clusters get-credentials tripico-cluster --region europe-west1
+
+      # Apply any updated manifests
+      - name: Apply Kubernetes Manifests
+        working-directory: ./k8s
+        run: |
+          kubectl apply -f cad-frontend.yaml
+          kubectl apply -f ingress-prod.yaml
+          kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
+
+      # Update deployment image dynamically
+      - name: Patch deployment with new image
+        run: |
+          kubectl set image deployment/travel-warnings-api travel-warnings-api=${{ needs.build-and-push.outputs.frontend_image }}
+
+      - name: Wait for rollout
+        run: |
+          kubectl rollout status deployment/cad-frontend --timeout=120s
+
+      - name: Show pod status
+        run: kubectl get pods -o wide
