@@ -1,9 +1,6 @@
 name: Docker push to GHCR and GCP Artifact Registry and deploy Frontend Infrastructure
 
 on:
-  push:
-    branches: [ main ]
-    tags: [ 'v*.*.*' ]
   workflow_dispatch:
 
 jobs:
