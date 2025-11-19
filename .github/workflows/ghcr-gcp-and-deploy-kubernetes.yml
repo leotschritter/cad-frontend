@@ -108,7 +108,7 @@ jobs:
       # Update deployment image dynamically
       - name: Patch deployment with new image
         run: |
-          kubectl set image deployment/travel-warnings-api travel-warnings-api=${{ needs.build-and-push.outputs.frontend_image }}
+          kubectl set image deployment/cad-frontend cad-frontend=${{ needs.build-and-push.outputs.frontend_image }}
 
       - name: Wait for rollout
         run: |
