@@ -1,6 +1,9 @@
 name: Docker push to GHCR and GCP Artifact Registry and deploy Frontend Infrastructure
 
 on:
+  push:
+    branches: [ "main", "feature/exercise7-leo"  ]
+    tags: [ 'v*.*.*' ]
   workflow_dispatch:
 
 jobs:
@@ -49,7 +52,7 @@ jobs:
           file: ./Dockerfile
           push: true
           build-args: |
-            VITE_API_BASE_URL=https://api.tripico.fun
+            VITE_API_BASE_URL=https://tripico-gateway-b1kp6vxb.ew.gateway.dev
             VITE_FIREBASE_API_KEY=${{ vars.VITE_FIREBASE_API_KEY }}
             VITE_FIREBASE_AUTH_DOMAIN=${{ vars.VITE_FIREBASE_AUTH_DOMAIN }}
             VITE_FIREBASE_PROJECT_ID=${{ vars.VITE_FIREBASE_PROJECT_ID }}
@@ -66,21 +69,17 @@ jobs:
       - name: Export app version
         id: export_app_version
         run: echo "app_version=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
-  deploy-infrastructure:
-    runs-on: ubuntu-latest
+  deploy:
     needs: build-and-push
+    runs-on: ubuntu-latest
     permissions:
-      contents: read
       id-token: write
-
-    defaults:
-      run:
-        working-directory: terraform
+      contents: read
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
+      # Authenticate again for kubectl
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
@@ -89,50 +88,31 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: "1.5.0"
-
-      - name: Terraform Init
-        run: terraform init
-
-      - name: Run Smart Import Script
+      - name: Install GKE Auth Plugin
         run: |
-          chmod +x smart-import.sh
-          bash smart-import.sh
+          gcloud components install gke-gcloud-auth-plugin --quiet
 
-      - name: Terraform Plan
-        run: terraform plan -var="frontend_image=${{ needs.build-and-push.outputs.frontend_image }}" -var="app_version=${{ needs.build-and-push.outputs.app_version }}"
-
-      - name: Terraform Apply
-        run: terraform apply -auto-approve -var="frontend_image=${{ needs.build-and-push.outputs.frontend_image }}" -var="app_version=${{ needs.build-and-push.outputs.app_version }}"
-
-      - name: Output Results
-        if: always()
+      - name: Configure kubectl for GKE
         run: |
-          echo "::group::Terraform Outputs"
-          terraform output
-          echo "::endgroup::"
+          gcloud container clusters get-credentials tripico-cluster --region europe-west1
 
-          echo "::group::Frontend URL"
-          terraform output -raw frontend_url || echo "Not available yet"
-          echo "::endgroup::"
+      # Apply any updated manifests
+      - name: Apply Kubernetes Manifests
+        working-directory: ./k8s
+        run: |
+          kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
+          kubectl apply -f cad-frontend.yaml
+          kubectl apply -f ingress-prod.yaml
+          kubectl apply -f certificate.yaml
 
-      - name: Comment PR with results
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const output = `#### Terraform Deployment Results 🚀
+      # Update deployment image dynamically
+      - name: Patch deployment with new image
+        run: |
+          kubectl set image deployment/cad-frontend cad-frontend=${{ needs.build-and-push.outputs.frontend_image }}
 
-            **Frontend URL:** \`${{ steps.tf-output.outputs.frontend_url || 'Pending...' }}\`
+      - name: Wait for rollout
+        run: |
+          kubectl rollout status deployment/cad-frontend --timeout=120s
 
-            Infrastructure has been deployed successfully!`;
-
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: output
-            });
+      - name: Show pod status
+        run: kubectl get pods -o wide
