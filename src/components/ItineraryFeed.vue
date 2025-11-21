@@ -1,6 +1,6 @@
 <script lang="ts">
 import { defineComponent } from "vue";
-import type { ItinerarySearchResponseDto, CommentDto, LikeDto } from "@/api";
+import type { ItinerarySearchResponseDto, CommentDto, LikeDto } from "@/api/backend";
 import { getApi } from "@/services/api";
 import { useAuthStore } from "@/stores/auth";
 import { useUserStore } from "@/stores/user";
@@ -176,7 +176,6 @@ export default defineComponent({
       for (const item of this.feedItems) {
         try {
           const email = (item as any).userEmail;
-
           if (email && email.includes('@')) {
             const profileImageUrl = await this.userStore.getUserProfileImageByEmail(email);
             if (profileImageUrl) {
@@ -185,6 +184,7 @@ export default defineComponent({
           }
         } catch (err) {
           console.error(`Failed to load profile image for user ${item.userName}:`, err);
+          console.log(`Failed to load profile image for user ${item.userName}:`, err);
         }
       }
     },

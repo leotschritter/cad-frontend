@@ -61,6 +61,12 @@ export interface ItinerarySearchResponseDto {
      * @memberof ItinerarySearchResponseDto
      */
     userName?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof ItinerarySearchResponseDto
+     */
+    userEmail?: string;
 }
 
 /**
@@ -87,6 +93,7 @@ export function ItinerarySearchResponseDtoFromJSONTyped(json: any, ignoreDiscrim
         'shortDescription': json['shortDescription'] == null ? undefined : json['shortDescription'],
         'detailedDescription': json['detailedDescription'] == null ? undefined : json['detailedDescription'],
         'userName': json['userName'] == null ? undefined : json['userName'],
+        'userEmail': json['userEmail'] == null ? undefined : json['userEmail'],
     };
 }
 
@@ -108,6 +115,7 @@ export function ItinerarySearchResponseDtoToJSONTyped(value?: ItinerarySearchRes
         'shortDescription': value['shortDescription'],
         'detailedDescription': value['detailedDescription'],
         'userName': value['userName'],
+        'userEmail': value['userEmail'],
     };
 }
 

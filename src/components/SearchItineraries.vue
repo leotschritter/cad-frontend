@@ -1,8 +1,9 @@
 <script lang="ts">
 import { defineComponent, ref } from "vue";
-import type { ItinerarySearchDto, ItinerarySearchResponseDto } from "@/api";
+import type { ItinerarySearchDto, ItinerarySearchResponseDto } from "@/api/backend";
 import { getApi } from '@/services/api';
 import ItineraryDetails from '@/components/ItineraryDetails.vue';
+import { useAuthStore } from "@/stores/auth.ts";
 
 export default defineComponent({
   name: 'SearchItineraries',
@@ -35,6 +36,29 @@ export default defineComponent({
         {title: 'Short Description', key: 'shortDescription'},
         {title: 'Actions', key: 'actions', sortable: false, align: 'end' as const},
       ],
+    }
+  },
+  mounted() {
+    alert('SearchItineraries loaded!');
+    console.log('TEST: SearchItineraries mounted!');
+
+    // Auth Token beim Laden der Seite ausgeben
+    const authStore = useAuthStore();
+    console.log('TEST: authStore:', authStore);
+    console.log('TEST: idToken:', authStore.idToken);
+
+    if (authStore.idToken) {
+      console.log('='.repeat(60));
+      console.log('🔑 AUTH TOKEN FÜR SWAGGER:');
+      console.log(authStore.idToken);
+      console.log('='.repeat(60));
+      console.log('📋 Kopiere den Token oben und nutze ihn in Swagger:');
+      console.log('   1. Öffne http://localhost:8080/q/swagger-ui');
+      console.log('   2. Klicke "Authorize"');
+      console.log('   3. Füge ein: Bearer ' + authStore.idToken);
+      console.log('='.repeat(60));
+    } else {
+      console.log('⚠️ Kein Auth Token gefunden! Bist du eingeloggt?');
     }
   },
   methods: {
