@@ -3,6 +3,7 @@ import { defineComponent } from "vue";
 import type { ItinerarySearchResponseDto, CommentDto, LikeDto } from "@/api";
 import { getApi } from "@/services/api";
 import { useAuthStore } from "@/stores/auth";
+import { useUserStore } from "@/stores/user";
 import TripViewReadOnly from "@/components/TripViewReadOnly.vue";
 
 interface Comment {
@@ -13,9 +14,18 @@ interface Comment {
   timestamp: Date;
 }
 
+interface LocationWithImages {
+  id?: number;
+  name?: string;
+  imageUrls: string[];
+}
+
 interface ItineraryWithInteractions extends ItinerarySearchResponseDto {
   itineraryId?: number;
   imageUrls?: string[];
+  locations?: LocationWithImages[];
+  currentLocationIndex?: number;
+  userProfileImage?: string;
   likes?: number;
   isLiked?: boolean;
   comments?: Comment[];
@@ -39,6 +49,7 @@ export default defineComponent({
       commentApi: getApi('CommentManagementApi'),
       locationApi: getApi('LocationManagementApi'),
       authStore: useAuthStore(),
+      userStore: useUserStore(),
       placeholderImage: 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&q=80',
       detailsItinerary: null as ItinerarySearchResponseDto | null,
       showDetailsDialog: false
@@ -52,16 +63,19 @@ export default defineComponent({
           ...item,
           itineraryId: item.id, // Mappe id zu itineraryId
           imageUrls: [],
+          locations: [],
+          currentLocationIndex: 0,
           likes: 0,
           isLiked: false,
           comments: [],
           showAllComments: false
         }));
 
-        // Lade die echten Like-Daten, Kommentare und Bilder für alle Itineraries
+        // Lade die echten Like-Daten, Kommentare, Bilder und Profilbilder für alle Itineraries
         await this.loadLikesForAllItems();
         await this.loadCommentsForAllItems();
         await this.loadImagesForAllItems();
+        await this.loadProfileImagesForAllItems();
       }
     }
   },
@@ -131,19 +145,22 @@ export default defineComponent({
               itineraryId: item.itineraryId
             });
 
-            // Sammle alle Bilder aus allen Locations
-            const allImages: string[] = [];
-            for (const location of locations) {
-              if (location.imageUrls && location.imageUrls.length > 0) {
-                allImages.push(...location.imageUrls);
-              }
-            }
+            // Speichere Locations mit ihren Bildern getrennt
+            item.locations = locations.map(loc => ({
+              id: loc.id,
+              name: loc.name,
+              imageUrls: (loc.imageUrls && loc.imageUrls.length > 0)
+                ? loc.imageUrls
+                : [this.placeholderImage]
+            }));
 
-            // Setze die echten Bilder oder Platzhalterbild wenn keine vorhanden
-            if (allImages.length > 0) {
-              item.imageUrls = allImages;
+            // Setze Bilder der ersten Location als Standard
+            if (item.locations.length > 0) {
+              item.imageUrls = item.locations[0].imageUrls;
+              item.currentLocationIndex = 0;
             } else {
               item.imageUrls = [this.placeholderImage];
+              item.locations = [];
             }
 
           } catch (err) {
@@ -151,6 +168,23 @@ export default defineComponent({
             // Fallback zum Platzhalterbild bei Fehler
             item.imageUrls = [this.placeholderImage];
           }
+        }
+      }
+    },
+
+    async loadProfileImagesForAllItems() {
+      for (const item of this.feedItems) {
+        try {
+          const email = (item as any).userEmail;
+
+          if (email && email.includes('@')) {
+            const profileImageUrl = await this.userStore.getUserProfileImageByEmail(email);
+            if (profileImageUrl) {
+              item.userProfileImage = profileImageUrl;
+            }
+          }
+        } catch (err) {
+          console.error(`Failed to load profile image for user ${item.userName}:`, err);
         }
       }
     },
@@ -280,6 +314,22 @@ export default defineComponent({
       this.detailsItinerary = this.itineraries.find((itinerary) => itinerary.id === itineraryId) ?? null;
       this.showDetailsDialog = true;
     },
+
+    nextLocation(item: ItineraryWithInteractions) {
+      if (!item.locations || item.locations.length === 0) return;
+      const currentIndex = item.currentLocationIndex ?? 0;
+      const nextIndex = (currentIndex + 1) % item.locations.length;
+      item.currentLocationIndex = nextIndex;
+      item.imageUrls = item.locations[nextIndex].imageUrls;
+    },
+
+    prevLocation(item: ItineraryWithInteractions) {
+      if (!item.locations || item.locations.length === 0) return;
+      const currentIndex = item.currentLocationIndex ?? 0;
+      const prevIndex = (currentIndex - 1 + item.locations.length) % item.locations.length;
+      item.currentLocationIndex = prevIndex;
+      item.imageUrls = item.locations[prevIndex].imageUrls;
+    },
     closeTripDetailsDialog(): void {
       this.showDetailsDialog = false;
       this.detailsItinerary = null;
@@ -304,13 +354,18 @@ export default defineComponent({
             <v-card-title class="pa-3">
               <div class="d-flex align-center mb-2">
                 <v-avatar color="primary" size="40" class="mr-3">
-                  <v-icon>mdi-account-circle</v-icon>
+                  <v-img
+                    v-if="item.userProfileImage"
+                    :src="item.userProfileImage"
+                    alt="User profile"
+                  />
+                  <v-icon v-else>mdi-account-circle</v-icon>
                 </v-avatar>
                 <div class="flex-grow-1">
                   <div class="text-subtitle-1 font-weight-bold">{{ item.userName }}</div>
                   <div class="text-caption text-medium-emphasis d-flex align-center">
-                    <v-icon size="x-small" class="mr-1">mdi-map-marker</v-icon>
-                    {{ item.destination }}
+                    <v-icon size="x-small" class="mr-1">mdi-map-marker</v-icon> Destination:
+                    {{item.destination }}
                   </div>
                 </div>
               </div>
@@ -320,6 +375,38 @@ export default defineComponent({
             <div class="px-4 pt-3 pb-3">
               <div class="text-h5 font-weight-bold">
                 {{ item.title }}
+              </div>
+            </div>
+
+
+            <!-- Location Navigation -->
+            <div v-if="item.locations && item.locations.length > 1" class="px-4 pb-2">
+              <div class="d-flex align-center justify-space-between">
+                <v-btn
+                  icon="mdi-chevron-left"
+                  variant="text"
+                  size="small"
+                  @click="prevLocation(item)"
+                ></v-btn>
+                <div class="text-center">
+                  <div class="text-body-2 text-medium-emphasis">
+                    Location {{ (item.currentLocationIndex ?? 0) + 1 }} of {{ item.locations.length }}
+                  </div>
+                  <div class="text-subtitle-1 font-weight-medium">
+                    {{ item.locations[item.currentLocationIndex ?? 0]?.name }}
+                  </div>
+                </div>
+                <v-btn
+                  icon="mdi-chevron-right"
+                  variant="text"
+                  size="small"
+                  @click="nextLocation(item)"
+                ></v-btn>
+              </div>
+            </div>
+            <div v-else-if="item.locations && item.locations.length === 1" class="px-4 pb-2 text-center">
+              <div class="text-subtitle-1 font-weight-medium">
+                {{ item.locations[0]?.name }}
               </div>
             </div>
 

@@ -34,6 +34,19 @@ export const useUserStore = defineStore('user',{
           throw err
         }
       }
+    },
+    async getUserProfileImageByEmail(email: string): Promise<string | null> {
+      try {
+        const response = await userApi.userEmailProfileImageGet({ email });
+        return response.imageUrl ?? null;
+      } catch (err: any) {
+        const status = err?.response?.status
+        if (status === 400 || status === 404) {
+          return null
+        } else {
+          throw err
+        }
+      }
     }
   }
 })

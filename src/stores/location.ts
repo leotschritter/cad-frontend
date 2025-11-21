@@ -165,6 +165,37 @@ export const useLocationStore = defineStore('location', {
     },
 
     /**
+     * Add existing image URLs to a location (re-link images that already exist in storage)
+     */
+    async addImageUrlsToLocation(payload: {
+      locationId: number,
+      imageUrls: Array<string>
+    }): Promise<boolean> {
+      try {
+        await locationApi.locationLocationIdImageUrlsPost({
+          locationId: payload.locationId,
+          requestBody: payload.imageUrls
+        })
+
+        // Update local state
+        const location = this.locations.find(loc => loc.id === payload.locationId)
+        if (location) {
+          console.log('   Updating local state - before:', location.imageUrls)
+          location.imageUrls = [...(location.imageUrls || []), ...payload.imageUrls]
+          console.log('   Updating local state - after:', location.imageUrls)
+        }
+        if (this.currentLocation?.id === payload.locationId) {
+          this.currentLocation.imageUrls = [...(this.currentLocation.imageUrls || []), ...payload.imageUrls]
+        }
+
+        return true
+      } catch (err: any) {
+        console.error('Error adding image URLs to location:', err)
+        return false
+      }
+    },
+
+    /**
      * Delete an image from a location
      */
     async deleteImageFromLocation(payload: {

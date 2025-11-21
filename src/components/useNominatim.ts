@@ -12,7 +12,7 @@ export function useNominatim() {
       headers: {
         'Accept': 'application/json',
         // identify your app; required by Nominatim usage policy
-        'User-Agent': 'TripPlanner/1.0 (your-email@example.com)'
+        //'User-Agent': 'TripPlanner/1.0 (your-email@example.com)'
       }
     })
     if (!res.ok) return null
