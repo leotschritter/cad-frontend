@@ -7,7 +7,8 @@
     "node": "^20.19.0 || >=22.12.0"
   },
   "scripts": {
-    "api:gen": "openapi-generator-cli generate -i openapi.yaml -g typescript-fetch -o src/api --additional-properties=typescriptThreePlus=true,withSeparateModelsAndApi=true,supportsES6=true,modelPropertyNaming=original",
+    "api:gen": "openapi-generator-cli generate -i backend.openapi.yaml -g typescript-fetch -o src/api/backend --additional-properties=typescriptThreePlus=true,withSeparateModelsAndApi=true,supportsES6=true,modelPropertyNaming=original",
+    "api:gen-weather-forecast-service": "openapi-generator-cli generate -i wf-service.openapi.yaml -g typescript-axios -o src/api/weather-forecast-service --additional-properties=supportsES6=true,modelPropertyNaming=original",
     "dev": "vite",
     "build": "run-p type-check \"build-only {@}\" --",
     "preview": "vite preview",
