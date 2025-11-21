@@ -28,6 +28,10 @@ import {
     UserDtoToJSON,
 } from '../models/index';
 
+export interface UserEmailProfileImageGetRequest {
+    email: string;
+}
+
 export interface UserGetGetRequest {
     email: string;
 }
@@ -44,6 +48,53 @@ export interface UserRegisterPostRequest {
  * 
  */
 export class UserManagementApi extends runtime.BaseAPI {
+
+    /**
+     * Retrieves the profile image URL for a specific user by email. Requires authentication.
+     * Get profile image URL by email
+     */
+    async userEmailProfileImageGetRaw(requestParameters: UserEmailProfileImageGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ProfileImageResponseDto>> {
+        if (requestParameters['email'] == null) {
+            throw new runtime.RequiredError(
+                'email',
+                'Required parameter "email" was null or undefined when calling userEmailProfileImageGet().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("BearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/user/{email}/profile-image`;
+        urlPath = urlPath.replace(`{${"email"}}`, encodeURIComponent(String(requestParameters['email'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ProfileImageResponseDtoFromJSON(jsonValue));
+    }
+
+    /**
+     * Retrieves the profile image URL for a specific user by email. Requires authentication.
+     * Get profile image URL by email
+     */
+    async userEmailProfileImageGet(requestParameters: UserEmailProfileImageGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ProfileImageResponseDto> {
+        const response = await this.userEmailProfileImageGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
 
     /**
      * Retrieves user information by email address. Returns user details including name and email. Requires authentication.

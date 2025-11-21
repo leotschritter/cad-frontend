@@ -238,9 +238,28 @@ async function saveAllLocations(): Promise<boolean> {
 
       console.log(`Creating location ${i + 1}/${locations.value.length}:`, loc.name)
 
+      // Extract existing image filenames (excluding data URLs)
+      const existingImageUrls = (loc.images || [])
+        .filter(url => !url.startsWith('data:'))
+        .map(url => {
+          try {
+            // Extract filename from signed URL
+            const urlObj = new URL(url)
+            const pathParts = urlObj.pathname.split('/o/')
+            if (pathParts.length > 1) {
+              // Decode URI component to get actual filename
+              return decodeURIComponent(pathParts[1])
+            }
+            return url
+          } catch (e) {
+            console.warn('Failed to parse image URL:', url)
+            return url
+          }
+        })
+
       // Log file information if there are pending files
       if (loc.pendingFiles && loc.pendingFiles.length > 0) {
-        console.log(`  - Uploading ${loc.pendingFiles.length} file(s)`)
+        console.log(`  - Uploading ${loc.pendingFiles.length} new file(s)`)
         loc.pendingFiles.forEach((file, idx) => {
           console.log(`    File ${idx + 1}: ${file.name} (${file.size} bytes, ${file.type})`)
         })
@@ -286,10 +305,37 @@ async function saveAllLocations(): Promise<boolean> {
         loc.id = newLocation.id!
         // Clear pending files since they've been uploaded
         loc.pendingFiles = []
-        // Update images with the actual URLs from backend
-        if (newLocation.imageUrls) {
-          loc.images = newLocation.imageUrls
+
+        // Existierende Bilder wieder hinzufügen
+        if (existingImageUrls.length > 0) {
+          console.log(`  - Re-adding ${existingImageUrls.length} existing image(s) to location ${newLocation.id}`)
+          console.log(`  - Existing URLs to re-add:`, existingImageUrls)
+
+          const added = await locationStore.addImageUrlsToLocation({
+            locationId: newLocation.id!,
+            imageUrls: existingImageUrls
+          })
+          console.log(`  - Re-add result:`, added)
+          if (!added) {
+            console.error('❌ Failed to re-add existing images!')
+          } else {
+            console.log('✅ Successfully re-added existing images')
+          }
         }
+
+        // Update images: hole alle von Backend (bereits in richtiger Reihenfolge)
+        console.log(`  - Images from backend:`, newLocation.imageUrls)
+
+        // Backend gibt bereits alle Bilder zurück (neue + re-added), hole sie nochmal
+        const refreshedLocation = await locationStore.getLocationById(newLocation.id!)
+        if (refreshedLocation?.imageUrls) {
+          loc.images = refreshedLocation.imageUrls
+          console.log(`  - Refreshed images from backend:`, loc.images)
+        } else {
+          // Fallback: merge manually
+          loc.images = [...existingImageUrls, ...(newLocation.imageUrls || [])]
+        }
+        console.log(`  - Total images:`, loc.images.length)
       } else {
         success = false
         console.error(`Failed to create location: ${loc.name}`)
