@@ -38,29 +38,6 @@ export default defineComponent({
       ],
     }
   },
-  mounted() {
-    alert('SearchItineraries loaded!');
-    console.log('TEST: SearchItineraries mounted!');
-
-    // Auth Token beim Laden der Seite ausgeben
-    const authStore = useAuthStore();
-    console.log('TEST: authStore:', authStore);
-    console.log('TEST: idToken:', authStore.idToken);
-
-    if (authStore.idToken) {
-      console.log('='.repeat(60));
-      console.log('🔑 AUTH TOKEN FÜR SWAGGER:');
-      console.log(authStore.idToken);
-      console.log('='.repeat(60));
-      console.log('📋 Kopiere den Token oben und nutze ihn in Swagger:');
-      console.log('   1. Öffne http://localhost:8080/q/swagger-ui');
-      console.log('   2. Klicke "Authorize"');
-      console.log('   3. Füge ein: Bearer ' + authStore.idToken);
-      console.log('='.repeat(60));
-    } else {
-      console.log('⚠️ Kein Auth Token gefunden! Bist du eingeloggt?');
-    }
-  },
   methods: {
     async searchItineraries() {
       this.loading = true;
