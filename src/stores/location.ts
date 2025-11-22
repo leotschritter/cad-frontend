@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { getApi } from "@/services/api.ts";
-import type { LocationDto } from "@/api";
+import type { LocationDto } from "@/api/backend";
 import { formatDate } from "@/utils/dateUtils.ts";
 
 const locationApi = getApi('LocationManagementApi')
