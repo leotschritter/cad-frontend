@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { getApi } from "@/services/api.ts";
 import type { LocationDto } from "@/api/backend";
 import { formatDate } from "@/utils/dateUtils.ts";
+import { useNominatim } from '@/components/useNominatim.ts'
 
 const locationApi = getApi('LocationManagementApi')
 
@@ -51,9 +52,14 @@ export const useLocationStore = defineStore('location', {
     }): Promise<LocationDto | null> {
       try {
         // Ensure files are properly converted to Blob array if needed
+        const { geocode } = useNominatim()
+        const coords = await geocode(payload.name || '')
+
         const requestPayload = {
           itineraryId: payload.itineraryId,
           name: payload.name,
+          latitude: coords?.lat,
+          longitude: coords?.lng,
           description: payload.description,
           fromDate: payload.fromDate ? formatDate(payload.fromDate) : undefined,
           toDate: payload.toDate ? formatDate(payload.toDate) : undefined,

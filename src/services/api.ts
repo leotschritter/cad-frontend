@@ -1,11 +1,15 @@
 // src/services/api.ts
 import { Configuration } from '@/api/backend';
-import * as AllApis from '@/api/backend/apis';
+import * as BackendApis from '@/api/backend/apis';
+import * as WeatherApis from '@/api/weather-forecast-service/apis';
 import { useAuthStore } from '@/stores/auth';
 
 // Prefer Vite env var, fallback to local dev
 const basePath =
   import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080';
+
+const weatherBasePath =
+  import.meta.env.VITE_API_WEATHER_BASE_URL ?? 'http://localhost:8081';
 
 // Create a custom middleware to add the Firebase token
 const createAuthMiddleware = () => ({
@@ -49,8 +53,21 @@ export const apiConfig = new Configuration({
   middleware: [createAuthMiddleware()],
 });
 
+export const weatherApiConfig = new Configuration({
+  basePath: weatherBasePath,
+  middleware: [createAuthMiddleware()], // Weather API requires authentication
+});
+
 // Helper to grab a specific API class once (tree-shakable)
-export const getApi = <T extends keyof typeof AllApis>(key: T) => {
-  const ApiCtor = AllApis[key] as any;
+// Supports both backend APIs and weather APIs
+export const getApi = <T extends keyof typeof BackendApis | keyof typeof WeatherApis>(key: T) => {
+  // Check if it's a weather API
+  if (key in WeatherApis) {
+    const ApiCtor = WeatherApis[key as keyof typeof WeatherApis] as any;
+    return new ApiCtor(weatherApiConfig);
+  }
+
+  // Otherwise it's a backend API
+  const ApiCtor = BackendApis[key as keyof typeof BackendApis] as any;
   return new ApiCtor(apiConfig);
 };

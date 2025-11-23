@@ -4,9 +4,11 @@ import { defineComponent, ref } from "vue";
 import type { ItineraryDto } from "@/api/backend";
 import { useItineraryStore } from '@/stores/itinerary.ts'
 import { useAuthStore} from '@/stores/auth.ts'
+import { useLocationStore } from '@/stores/location.ts'
 import ItineraryDetails from '@/components/ItineraryDetails.vue'
 import TripView from '@/components/TripView.vue'
 import TripViewReadOnly from "@/components/TripViewReadOnly.vue";
+import WeatherView from "@/components/WeatherView.vue";
 import { getApi } from "@/services/api";
 
 export default defineComponent({
@@ -14,7 +16,8 @@ export default defineComponent({
   components: {
     TripViewReadOnly,
     ItineraryDetails,
-    TripView
+    TripView,
+    WeatherView
   },
   data() {
     return {
@@ -24,8 +27,11 @@ export default defineComponent({
       isDetails: ref(false),
       isEditLocations: ref(false),
       isShowLocations: ref(false),
+      isShowWeather: ref(false),
       selected: ref<ItineraryDto | null>(null),
       editingItinerary: ref<ItineraryDto | null>(null),
+      weatherItinerary: ref<ItineraryDto | null>(null),
+      weatherLocations: ref<any[]>([]),
       valid: ref(false),
       tripViewRef: ref<any>(null),  // Reference to TripView component
       newItinerary: {
@@ -44,6 +50,7 @@ export default defineComponent({
       ],
       itineraryStore: (null as any),
       authStore: (null as any),
+      locationStore: (null as any),
       likeApi: getApi('LikeManagementApi'),
       likesMap: ref<Record<number, number>>({}),
     }
@@ -58,6 +65,7 @@ export default defineComponent({
   },
   created() {
     this.authStore = useAuthStore();
+    this.locationStore = useLocationStore();
 
     this.itineraryStore = useItineraryStore();
     this.itineraryStore.loadItineraries();
@@ -92,7 +100,7 @@ export default defineComponent({
         }
       }
     },
-    open(action: 'create' | 'showDetails' | 'editLocations' | 'showLocations', item?: ItineraryDto) {
+    async open(action: 'create' | 'showDetails' | 'editLocations' | 'showLocations' | 'showWeather', item?: ItineraryDto) {
       if (action === 'create') {
         this.isCreate = true;
       } else if (action === 'showDetails') {
@@ -104,9 +112,24 @@ export default defineComponent({
       } else if (action === 'showLocations') {
         this.editingItinerary = item || null;
         this.isShowLocations = true;
+      } else if (action === 'showWeather') {
+        this.weatherItinerary = item || null;
+        // Load locations for this itinerary
+        if (item?.id) {
+          try {
+            const locations = await this.locationStore.getLocationsForItinerary(item.id);
+            console.log('Loaded locations with coordinates:', locations);
+            // Locations now have latitude and longitude from the database
+            this.weatherLocations = locations;
+          } catch (error) {
+            console.error('Failed to load locations for weather:', error);
+            this.weatherLocations = [];
+          }
+        }
+        this.isShowWeather = true;
       }
     },
-    async close(action: 'submit' | 'cancel' | 'closeDetails' | 'submitLocations' | 'cancelLocations' | 'cancelReadonlyLocations') {
+    async close(action: 'submit' | 'cancel' | 'closeDetails' | 'submitLocations' | 'cancelLocations' | 'cancelReadonlyLocations' | 'closeWeather') {
       if (action === 'submit') {
         this.itineraryStore.addNewItinerary(this.newItinerary as ItineraryDto);
         this.clearItinerary();
@@ -139,6 +162,10 @@ export default defineComponent({
       } else if (action === 'cancelReadonlyLocations') {
         this.isShowLocations = false;
         this.editingItinerary = null;
+      } else if (action === 'closeWeather') {
+        this.isShowWeather = false;
+        this.weatherItinerary = null;
+        this.weatherLocations = [];
       }
     },
     clearItinerary() {
@@ -229,6 +256,15 @@ export default defineComponent({
                   @click="open('showLocations', item)"
               >
                 Show Locations
+              </v-btn>
+              <v-btn
+                  size="small"
+                  variant="text"
+                  prepend-icon="mdi-weather-partly-cloudy"
+                  @click="open('showWeather', item)"
+                  color="blue"
+              >
+                Show Weather
               </v-btn>
             </template>
           </v-data-table>
@@ -337,6 +373,35 @@ export default defineComponent({
             <v-card-actions class="pa-4">
               <v-spacer/>
               <v-btn variant="text" size="large" @click="close('cancelReadonlyLocations')">Cancel</v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
+
+        <!-- Weather dialog -->
+        <v-dialog v-model="isShowWeather" max-width="95vw" persistent>
+          <v-card style="max-height: 90vh;">
+            <v-card-title class="text-h6 bg-primary d-flex align-center">
+              <v-icon class="mr-2">mdi-weather-partly-cloudy</v-icon>
+              Weather Forecast - {{ weatherItinerary?.title || '' }}
+              <v-chip v-if="weatherItinerary?.destination" size="small" class="ml-3" variant="tonal">
+                {{ weatherItinerary.destination }}
+              </v-chip>
+            </v-card-title>
+            <v-card-text class="pa-4" style="height: calc(90vh - 140px); overflow-y: auto;">
+              <WeatherView
+                  v-if="weatherLocations.length > 0"
+                  :locations="weatherLocations"
+                  :itinerary-title="weatherItinerary?.title || 'Itinerary'"
+                  @close="close('closeWeather')"
+              />
+              <v-alert v-else type="info" variant="tonal" class="ma-4">
+                <v-alert-title>No Locations Found</v-alert-title>
+                Please add locations to this itinerary first before viewing weather forecasts.
+              </v-alert>
+            </v-card-text>
+            <v-card-actions class="pa-4">
+              <v-spacer/>
+              <v-btn variant="text" size="large" @click="close('closeWeather')">Close</v-btn>
             </v-card-actions>
           </v-card>
         </v-dialog>
