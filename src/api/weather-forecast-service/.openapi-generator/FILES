@@ -1,0 +1,9 @@
+.openapi-generator-ignore
+apis/WeatherForecastApi.ts
+apis/index.ts
+index.ts
+models/DailyForecastResponse.ts
+models/HourlyForecastResponse.ts
+models/WeatherForecastResponse.ts
+models/index.ts
+runtime.ts
