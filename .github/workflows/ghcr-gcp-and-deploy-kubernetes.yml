@@ -7,6 +7,7 @@ on:
     paths:
       - "cad-frontend-chart/**"
       - "Dockerfile"
+      - "src/**"
   workflow_dispatch:
 
 jobs:
