@@ -2,8 +2,11 @@ name: Docker push to GHCR and GCP Artifact Registry and deploy Frontend Infrastr
 
 on:
   push:
-    branches: [ "main", "feature/exercise7-leo"  ]
+    branches: [ "main", "feature/exercise8-leo"  ]
     tags: [ 'v*.*.*' ]
+    paths:
+      - "cad-frontend-chart/**"
+      - "Dockerfile"
   workflow_dispatch:
 
 jobs:
@@ -96,23 +99,57 @@ jobs:
         run: |
           gcloud container clusters get-credentials tripico-cluster --region europe-west1
 
-      # Apply any updated manifests
-      - name: Apply Kubernetes Manifests
-        working-directory: ./k8s
-        run: |
-          kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
-          kubectl apply -f cad-frontend.yaml
-          kubectl apply -f ingress-prod.yaml
-          kubectl apply -f certificate.yaml
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: 'latest'
 
-      # Update deployment image dynamically
-      - name: Patch deployment with new image
+      - name: Install NGINX Ingress Controller (if not exists)
         run: |
-          kubectl set image deployment/cad-frontend cad-frontend=${{ needs.build-and-push.outputs.frontend_image }}
+          # Check if ingress-nginx namespace exists
+          if ! kubectl get namespace ingress-nginx &>/dev/null; then
+            echo "Installing NGINX Ingress Controller..."
+            helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+            helm repo update
+            helm install ingress-nginx ingress-nginx/ingress-nginx \
+              --namespace ingress-nginx \
+              --create-namespace \
+              --wait --timeout 5m
+          else
+            echo "NGINX Ingress Controller already installed"
+          fi
 
-      - name: Wait for rollout
+      - name: Deploy with Helm
+        working-directory: .
         run: |
-          kubectl rollout status deployment/cad-frontend --timeout=120s
+          # Check if release exists
+          if helm list | grep -q "^cad-frontend"; then
+            echo "Upgrading existing release..."
+            helm upgrade cad-frontend ./cad-frontend-chart \
+              -f ./cad-frontend-chart/values-prod.yaml \
+              --set cadFrontend.image=${{ needs.build-and-push.outputs.frontend_image }} \
+              --wait --timeout 5m
+          else
+            echo "Installing new release..."
+            helm install cad-frontend ./cad-frontend-chart \
+              -f ./cad-frontend-chart/values-prod.yaml \
+              --set smtp.user="${{ secrets.SMTP_USER }}" \
+              --set smtp.password="${{ secrets.SMTP_PASSWORD }}" \
+              --set travelWarningsApi.image=${{ needs.build-and-push.outputs.frontend_image }} \
+              --create-namespace \
+              --wait --timeout 5m
+          fi
 
-      - name: Show pod status
-        run: kubectl get pods -o wide
+      - name: Verify Deployment
+        run: |
+          echo "=== Helm Release Status ==="
+          helm status cad-frontend
+          echo ""
+          echo "=== Pod Status ==="
+          kubectl get pods -l app.kubernetes.io/instance=cad-frontend -o wide
+          echo ""
+          echo "=== Service Status ==="
+          kubectl get svc -l app.kubernetes.io/instance=cad-frontend
+          echo ""
+          echo "=== Ingress Status ==="
+          kubectl get ingress

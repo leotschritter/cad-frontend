@@ -1,0 +1,41 @@
+# Development/Local Environment Values
+# Use this for local development with Minikube or Docker Desktop
+
+# Use development ingress (without TLS)
+ingress:
+  enabled: true
+  useProd: false
+  name: cad-frontend-ingress
+  host: cad-frontend.local
+
+# Lower resource requirements for local development
+cadFrontend:
+  replicas: 1
+
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+
+  probes:
+    startup:
+      path: /
+      initialDelaySeconds: 5
+      periodSeconds: 5
+      failureThreshold: 10
+      timeoutSeconds: 3
+    readiness:
+      path: /
+      periodSeconds: 10
+      initialDelaySeconds: 0
+      failureThreshold: 3
+      timeoutSeconds: 5
+    liveness:
+      path: /
+      periodSeconds: 30
+      initialDelaySeconds: 10
+      failureThreshold: 3
+      timeoutSeconds: 3
