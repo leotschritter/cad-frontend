@@ -1,0 +1,4 @@
+cadFrontend:
+  name: cad-frontend
+  port: 80
+  image: ghcr.io/leotschritter/cad-frontend:latest

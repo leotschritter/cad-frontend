@@ -1,0 +1,49 @@
+# Production Environment Values
+# Use this for production deployment on GCP/GKE
+
+# Use production ingress with TLS
+ingress:
+  enabled: true
+  useProd: true
+  name: cad-frontend-ingress
+  host: frontend.tripico.fun
+  sslRedirect: "true"
+  forceSslRedirect: "true"
+
+# Higher availability and resources for production
+cadFrontend:
+  replicas: 2
+  image: europe-west1-docker.pkg.dev/graphite-plane-474510-s9/docker-repo/travel-frontend:latest
+
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+
+  probes:
+    startup:
+      path: /
+      initialDelaySeconds: 5
+      periodSeconds: 5
+      failureThreshold: 10
+      timeoutSeconds: 3
+    readiness:
+      path: /
+      periodSeconds: 10
+      initialDelaySeconds: 0
+      failureThreshold: 3
+      timeoutSeconds: 5
+    liveness:
+      path: /
+      periodSeconds: 30
+      initialDelaySeconds: 10
+      failureThreshold: 3
+      timeoutSeconds: 3
+
+certificate:
+  name: frontend-tls-cert
+  secretName: frontend-tls
+  issuerName: letsencrypt-prod
