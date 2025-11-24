@@ -4,6 +4,9 @@ on:
   push:
     branches: [ "main", "feature/exercise8-leo"  ]
     tags: [ 'v*.*.*' ]
+    paths:
+      - "cad-frontend-chart/**"
+      - "Dockerfile"
   workflow_dispatch:
 
 jobs:
