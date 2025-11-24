@@ -119,7 +119,7 @@ jobs:
             echo "NGINX Ingress Controller already installed"
           fi
 
-      Cleanup Step - Uncomment if needed (if anything in the cluster is not managed by Helm and must be replaced)
+      # Cleanup Step - Uncomment if needed (if anything in the cluster is not managed by Helm and must be replaced)
       - name: Clean up pre-existing resources (if not managed by Helm)
         run: |
           echo "Checking for non-Helm managed resources..."
