@@ -96,23 +96,97 @@ jobs:
         run: |
           gcloud container clusters get-credentials tripico-cluster --region europe-west1
 
-      # Apply any updated manifests
-      - name: Apply Kubernetes Manifests
-        working-directory: ./k8s
-        run: |
-          kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
-          kubectl apply -f cad-frontend.yaml
-          kubectl apply -f ingress-prod.yaml
-          kubectl apply -f certificate.yaml
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: 'latest'
 
-      # Update deployment image dynamically
-      - name: Patch deployment with new image
+      - name: Install NGINX Ingress Controller (if not exists)
         run: |
-          kubectl set image deployment/cad-frontend cad-frontend=${{ needs.build-and-push.outputs.frontend_image }}
+          # Check if ingress-nginx namespace exists
+          if ! kubectl get namespace ingress-nginx &>/dev/null; then
+            echo "Installing NGINX Ingress Controller..."
+            helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+            helm repo update
+            helm install ingress-nginx ingress-nginx/ingress-nginx \
+              --namespace ingress-nginx \
+              --create-namespace \
+              --wait --timeout 5m
+          else
+            echo "NGINX Ingress Controller already installed"
+          fi
 
-      - name: Wait for rollout
+      Cleanup Step - Uncomment if needed (if anything in the cluster is not managed by Helm and must be replaced)
+      - name: Clean up pre-existing resources (if not managed by Helm)
         run: |
-          kubectl rollout status deployment/cad-frontend --timeout=120s
+          echo "Checking for non-Helm managed resources..."
 
-      - name: Show pod status
-        run: kubectl get pods -o wide
+          # Function to check and delete resource if not managed by Helm
+          cleanup_resource() {
+            local resource_type=$1
+            local resource_name=$2
+
+            if kubectl get $resource_type $resource_name &>/dev/null; then
+              local managed_by=$(kubectl get $resource_type $resource_name -o jsonpath='{.metadata.labels.app\.kubernetes\.io/managed-by}' 2>/dev/null || echo "")
+
+              if [ "$managed_by" != "Helm" ]; then
+                echo "Found $resource_type/$resource_name not managed by Helm, deleting..."
+                # Use --wait=false for PVC to avoid hanging, timeout for others
+                if [ "$resource_type" == "pvc" ]; then
+                  kubectl delete $resource_type $resource_name --wait=false --timeout=30s 2>/dev/null || true
+                else
+                  kubectl delete $resource_type $resource_name --timeout=30s 2>/dev/null || true
+                fi
+                echo "Deleted $resource_type/$resource_name"
+              else
+                echo "$resource_type/$resource_name is already managed by Helm"
+              fi
+            else
+              echo "No pre-existing $resource_type/$resource_name found"
+            fi
+          }
+
+          # Clean up all resources that might conflict
+          cleanup_resource "ingress" "cad-frontend-ingress"
+          cleanup_resource "deployment" "cad-frontend"
+          echo "Waiting for pods to terminate..."
+          kubectl wait --for=delete pod -l app=cad-frontend --timeout=60s 2>/dev/null || true
+          cleanup_resource "service" "cad-frontend"
+          cleanup_resource "certificate" "frontend-tls-cert"
+
+          echo "Cleanup complete!"
+          
+      - name: Deploy with Helm
+        working-directory: .
+        run: |
+          # Check if release exists
+          if helm list | grep -q "^cad-frontend"; then
+            echo "Upgrading existing release..."
+            helm upgrade cad-frontend ./cad-frontend-chart \
+              -f ./cad-frontend-chart/values-prod.yaml \
+              --set cadFrontend.image=${{ needs.build-and-push.outputs.frontend_image }} \
+              --wait --timeout 5m
+          else
+            echo "Installing new release..."
+            helm install cad-frontend ./cad-frontend-chart \
+              -f ./cad-frontend-chart/values-prod.yaml \
+              --set smtp.user="${{ secrets.SMTP_USER }}" \
+              --set smtp.password="${{ secrets.SMTP_PASSWORD }}" \
+              --set travelWarningsApi.image=${{ needs.build-and-push.outputs.frontend_image }} \
+              --create-namespace \
+              --wait --timeout 5m
+          fi
+          
+      - name: Verify Deployment
+        run: |
+          echo "=== Helm Release Status ==="
+          helm status cad-frontend
+          echo ""
+          echo "=== Pod Status ==="
+          kubectl get pods -l app.kubernetes.io/instance=cad-frontend -o wide
+          echo ""
+          echo "=== Service Status ==="
+          kubectl get svc -l app.kubernetes.io/instance=cad-frontend
+          echo ""
+          echo "=== Ingress Status ==="
+          kubectl get ingress

@@ -1,0 +1,1 @@
+# CAD Frontend Helm Chart
