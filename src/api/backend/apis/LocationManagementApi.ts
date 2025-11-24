@@ -38,6 +38,8 @@ export interface LocationItineraryItineraryIdPostRequest {
     description?: string;
     fromDate?: string;
     toDate?: string;
+    latitude?: number;
+    longitude?: number;
     files?: Array<Blob>;
     transportType?: string;
     transportDuration?: number;
@@ -179,6 +181,14 @@ export class LocationManagementApi extends runtime.BaseAPI {
 
         if (requestParameters['toDate'] != null) {
             formParams.append('toDate', requestParameters['toDate'] as any);
+        }
+
+        if (requestParameters['latitude'] != null) {
+            formParams.append('latitude', requestParameters['latitude'] as any);
+        }
+
+        if (requestParameters['longitude'] != null) {
+            formParams.append('longitude', requestParameters['longitude'] as any);
         }
 
         if (requestParameters['files'] != null) {

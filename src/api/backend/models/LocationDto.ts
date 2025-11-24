@@ -54,6 +54,18 @@ export interface LocationDto {
     description?: string;
     /**
      * 
+     * @type {number}
+     * @memberof LocationDto
+     */
+    latitude?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof LocationDto
+     */
+    longitude?: number;
+    /**
+     * 
      * @type {Date}
      * @memberof LocationDto
      */
@@ -104,6 +116,8 @@ export function LocationDtoFromJSONTyped(json: any, ignoreDiscriminator: boolean
         'id': json['id'] == null ? undefined : json['id'],
         'name': json['name'] == null ? undefined : json['name'],
         'description': json['description'] == null ? undefined : json['description'],
+        'latitude': json['latitude'] == null ? undefined : json['latitude'],
+        'longitude': json['longitude'] == null ? undefined : json['longitude'],
         'fromDate': json['fromDate'] == null ? undefined : (new Date(json['fromDate'])),
         'toDate': json['toDate'] == null ? undefined : (new Date(json['toDate'])),
         'imageUrls': json['imageUrls'] == null ? undefined : json['imageUrls'],
@@ -126,6 +140,8 @@ export function LocationDtoToJSONTyped(value?: LocationDto | null, ignoreDiscrim
         'id': value['id'],
         'name': value['name'],
         'description': value['description'],
+        'latitude': value['latitude'],
+        'longitude': value['longitude'],
         'fromDate': value['fromDate'] == null ? undefined : ((value['fromDate']).toISOString().substring(0,10)),
         'toDate': value['toDate'] == null ? undefined : ((value['toDate']).toISOString().substring(0,10)),
         'imageUrls': value['imageUrls'],

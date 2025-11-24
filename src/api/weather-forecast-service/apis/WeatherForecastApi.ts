@@ -14,6 +14,13 @@
 
 
 import * as runtime from '../runtime';
+import type {
+  WeatherForecastResponse,
+} from '../models/index';
+import {
+    WeatherForecastResponseFromJSON,
+    WeatherForecastResponseToJSON,
+} from '../models/index';
 
 export interface ApiWeatherForecastCoordinatesGetRequest {
     lat?: number;
@@ -37,12 +44,13 @@ export interface ApiWeatherForecastLocationGetRequest {
 /**
  * 
  */
-export class WeatherForecastResourceApi extends runtime.BaseAPI {
+export class WeatherForecastApi extends runtime.BaseAPI {
 
     /**
+     * Retrieves stored weather forecasts for specific geographic coordinates. Returns all forecasts matching the latitude and longitude.
      * Get Weather Forecast By Coordinates
      */
-    async apiWeatherForecastCoordinatesGetRaw(requestParameters: ApiWeatherForecastCoordinatesGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+    async apiWeatherForecastCoordinatesGetRaw(requestParameters: ApiWeatherForecastCoordinatesGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<WeatherForecastResponse>>> {
         const queryParameters: any = {};
 
         if (requestParameters['lat'] != null) {
@@ -65,20 +73,23 @@ export class WeatherForecastResourceApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.VoidApiResponse(response);
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(WeatherForecastResponseFromJSON));
     }
 
     /**
+     * Retrieves stored weather forecasts for specific geographic coordinates. Returns all forecasts matching the latitude and longitude.
      * Get Weather Forecast By Coordinates
      */
-    async apiWeatherForecastCoordinatesGet(requestParameters: ApiWeatherForecastCoordinatesGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
-        await this.apiWeatherForecastCoordinatesGetRaw(requestParameters, initOverrides);
+    async apiWeatherForecastCoordinatesGet(requestParameters: ApiWeatherForecastCoordinatesGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<WeatherForecastResponse>> {
+        const response = await this.apiWeatherForecastCoordinatesGetRaw(requestParameters, initOverrides);
+        return await response.value();
     }
 
     /**
+     * Fetches weather forecast data from external API and stores it in the database. Returns the forecast for the specified coordinates and location.
      * Fetch Weather Forecast By Coordinates
      */
-    async apiWeatherForecastCoordinatesPostRaw(requestParameters: ApiWeatherForecastCoordinatesPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+    async apiWeatherForecastCoordinatesPostRaw(requestParameters: ApiWeatherForecastCoordinatesPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<WeatherForecastResponse>> {
         const queryParameters: any = {};
 
         if (requestParameters['lat'] != null) {
@@ -105,17 +116,20 @@ export class WeatherForecastResourceApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.VoidApiResponse(response);
+        return new runtime.JSONApiResponse(response, (jsonValue) => WeatherForecastResponseFromJSON(jsonValue));
     }
 
     /**
+     * Fetches weather forecast data from external API and stores it in the database. Returns the forecast for the specified coordinates and location.
      * Fetch Weather Forecast By Coordinates
      */
-    async apiWeatherForecastCoordinatesPost(requestParameters: ApiWeatherForecastCoordinatesPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
-        await this.apiWeatherForecastCoordinatesPostRaw(requestParameters, initOverrides);
+    async apiWeatherForecastCoordinatesPost(requestParameters: ApiWeatherForecastCoordinatesPostRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<WeatherForecastResponse> {
+        const response = await this.apiWeatherForecastCoordinatesPostRaw(requestParameters, initOverrides);
+        return await response.value();
     }
 
     /**
+     * Deletes all weather forecasts for a specific location. Returns the number of deleted forecasts. Case-insensitive location matching.
      * Delete Weather Forecast By Location
      */
     async apiWeatherForecastLocationDeleteRaw(requestParameters: ApiWeatherForecastLocationDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
@@ -141,6 +155,7 @@ export class WeatherForecastResourceApi extends runtime.BaseAPI {
     }
 
     /**
+     * Deletes all weather forecasts for a specific location. Returns the number of deleted forecasts. Case-insensitive location matching.
      * Delete Weather Forecast By Location
      */
     async apiWeatherForecastLocationDelete(requestParameters: ApiWeatherForecastLocationDeleteRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
@@ -148,9 +163,10 @@ export class WeatherForecastResourceApi extends runtime.BaseAPI {
     }
 
     /**
+     * Retrieves stored weather forecasts for a specific location. Returns all forecasts matching the location name (case-insensitive).
      * Get Weather Forecast By Location
      */
-    async apiWeatherForecastLocationGetRaw(requestParameters: ApiWeatherForecastLocationGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+    async apiWeatherForecastLocationGetRaw(requestParameters: ApiWeatherForecastLocationGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<WeatherForecastResponse>>> {
         const queryParameters: any = {};
 
         if (requestParameters['location'] != null) {
@@ -169,20 +185,23 @@ export class WeatherForecastResourceApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.VoidApiResponse(response);
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(WeatherForecastResponseFromJSON));
     }
 
     /**
+     * Retrieves stored weather forecasts for a specific location. Returns all forecasts matching the location name (case-insensitive).
      * Get Weather Forecast By Location
      */
-    async apiWeatherForecastLocationGet(requestParameters: ApiWeatherForecastLocationGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
-        await this.apiWeatherForecastLocationGetRaw(requestParameters, initOverrides);
+    async apiWeatherForecastLocationGet(requestParameters: ApiWeatherForecastLocationGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<WeatherForecastResponse>> {
+        const response = await this.apiWeatherForecastLocationGetRaw(requestParameters, initOverrides);
+        return await response.value();
     }
 
     /**
+     * Retrieves all stored weather forecasts from the database. Returns a list of all available forecasts.
      * Get All Weather Forecasts
      */
-    async apiWeatherForecastsGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+    async apiWeatherForecastsGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<WeatherForecastResponse>>> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -197,14 +216,16 @@ export class WeatherForecastResourceApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.VoidApiResponse(response);
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(WeatherForecastResponseFromJSON));
     }
 
     /**
+     * Retrieves all stored weather forecasts from the database. Returns a list of all available forecasts.
      * Get All Weather Forecasts
      */
-    async apiWeatherForecastsGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
-        await this.apiWeatherForecastsGetRaw(initOverrides);
+    async apiWeatherForecastsGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<WeatherForecastResponse>> {
+        const response = await this.apiWeatherForecastsGetRaw(initOverrides);
+        return await response.value();
     }
 
 }
