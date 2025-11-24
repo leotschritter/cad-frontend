@@ -1,0 +1,289 @@
+---
+openapi: 3.1.0
+tags:
+- name: Travel Warnings
+  description: Access official travel warnings from Auswärtiges Amt
+- name: User Trips
+  description: Manage user trip itineraries for travel warning notifications
+paths:
+  /warnings/travel-warnings:
+    get:
+      summary: Get all travel warnings
+      description: Returns all travel warnings stored in the system
+      tags:
+      - Travel Warnings
+      parameters:
+      - name: activeOnly
+        in: query
+        schema:
+          type: boolean
+          default: false
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: {}
+  /warnings/travel-warnings/batch:
+    post:
+      summary: Get warnings for multiple countries
+      description: Returns travel warnings for a list of country codes
+      tags:
+      - Travel Warnings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: string
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: {}
+        "400":
+          description: Bad Request
+  /warnings/travel-warnings/country/{countryCode}:
+    get:
+      summary: Get travel warning by country code
+      description: Returns travel warning for a specific country
+      tags:
+      - Travel Warnings
+      parameters:
+      - name: countryCode
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: {}
+  /warnings/travel-warnings/country/{countryCode}/detail:
+    get:
+      summary: Get detailed travel warning
+      description: Returns detailed travel warning with categorized content
+      tags:
+      - Travel Warnings
+      parameters:
+      - name: countryCode
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: {}
+  /warnings/travel-warnings/refresh:
+    post:
+      summary: Manually refresh travel warnings
+      description: Triggers manual fetch of latest warnings from Auswärtiges Amt API
+      tags:
+      - Travel Warnings
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: {}
+  /warnings/travel-warnings/{contentId}:
+    get:
+      summary: Get travel warning by content ID
+      description: Returns travel warning by Auswärtiges Amt content ID
+      tags:
+      - Travel Warnings
+      parameters:
+      - name: contentId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: {}
+  /warnings/trips:
+    post:
+      summary: Create a new trip
+      description: "Creates a new trip for receiving travel warnings. If active warnings\
+        \ exist for the destination, an immediate notification is sent."
+      tags:
+      - User Trips
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserTripDto"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: {}
+        "400":
+          description: Bad Request
+  /warnings/trips/user/{email}:
+    get:
+      summary: Get all trips for a user
+      description: Returns all trips associated with a user email
+      tags:
+      - User Trips
+      parameters:
+      - name: email
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: {}
+  /warnings/trips/user/{email}/warnings:
+    get:
+      summary: Get warnings for user's trips
+      description: Returns all active warnings that affect the user's trips
+      tags:
+      - User Trips
+      parameters:
+      - name: email
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: {}
+  /warnings/trips/{tripId}:
+    put:
+      summary: Update a trip
+      description: Updates an existing trip
+      tags:
+      - User Trips
+      parameters:
+      - name: tripId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserTripDto"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: {}
+        "400":
+          description: Bad Request
+    get:
+      summary: Get trip by ID
+      description: Returns a specific trip by its ID
+      tags:
+      - User Trips
+      parameters:
+      - name: tripId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: {}
+    delete:
+      summary: Delete a trip
+      description: Deletes a trip and stops alerts for it
+      tags:
+      - User Trips
+      parameters:
+      - name: tripId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: {}
+  /warnings/trips/{tripId}/notifications:
+    patch:
+      summary: Toggle notifications
+      description: Enable or disable notifications for a trip
+      tags:
+      - User Trips
+      parameters:
+      - name: tripId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      - name: enabled
+        in: query
+        schema:
+          type: boolean
+          default: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: {}
+components:
+  schemas:
+    LocalDate:
+      type: string
+      format: date
+      examples:
+      - 2022-03-10
+    UserTripDto:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          readOnly: true
+        email:
+          type: string
+        countryCode:
+          type: string
+        countryName:
+          type: string
+        startDate:
+          $ref: "#/components/schemas/LocalDate"
+        endDate:
+          $ref: "#/components/schemas/LocalDate"
+        tripName:
+          type: string
+        notificationsEnabled:
+          type: boolean
+info:
+  title: travel-warnings-service API
+  version: 1.0.0-SNAPSHOT
