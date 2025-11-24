@@ -1,6 +1,6 @@
 <script lang="ts">
 import { defineComponent, ref } from "vue";
-import type { ItinerarySearchDto, ItinerarySearchResponseDto } from "@/api";
+import type { ItinerarySearchDto, ItinerarySearchResponseDto } from "@/api/backend";
 import { getApi } from '@/services/api';
 import ItineraryFeed from '@/components/ItineraryFeed.vue';
 import ItinerarySearchForm from '@/components/ItinerarySearchForm.vue';

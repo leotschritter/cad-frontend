@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import type { ItineraryDto } from '@/api/models'
+import type { ItineraryDto } from '@/api/backend'
 import { getApi } from '@/services/api'
 
 export const useItineraryStore = defineStore('itinerary', {

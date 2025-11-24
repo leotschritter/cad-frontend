@@ -1,8 +1,9 @@
 <script lang="ts">
 import { defineComponent, ref } from "vue";
-import type { ItinerarySearchDto, ItinerarySearchResponseDto } from "@/api";
+import type { ItinerarySearchDto, ItinerarySearchResponseDto } from "@/api/backend";
 import { getApi } from '@/services/api';
 import ItineraryDetails from '@/components/ItineraryDetails.vue';
+import { useAuthStore } from "@/stores/auth.ts";
 
 export default defineComponent({
   name: 'SearchItineraries',

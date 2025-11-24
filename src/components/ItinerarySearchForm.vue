@@ -1,6 +1,6 @@
 <script lang="ts">
 import { defineComponent, ref } from "vue";
-import type { ItinerarySearchDto } from "@/api";
+import type { ItinerarySearchDto } from "@/api/backend";
 
 export default defineComponent({
   name: 'ItinerarySearchForm',

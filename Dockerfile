@@ -10,7 +10,7 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm ci --no-audit --no-fund;
 
-# Copy the rest (includes openapi.yaml so api:gen can run)
+# Copy the rest (includes backend.openapi.yaml so api:gen can run)
 COPY . .
 
 # Accept VITE_API_BASE_URL as build arg and set it as env var for Vite

@@ -1,6 +1,6 @@
 // src/services/api.ts
-import { Configuration } from '@/api';
-import * as AllApis from '@/api/apis';
+import { Configuration } from '@/api/backend';
+import * as AllApis from '@/api/backend/apis';
 import { useAuthStore } from '@/stores/auth';
 
 // Prefer Vite env var, fallback to local dev

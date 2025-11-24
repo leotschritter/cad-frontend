@@ -1,7 +1,7 @@
 <script lang="ts">
 import { defineComponent, ref } from "vue";
 
-import type { ItineraryDto } from "@/api";
+import type { ItineraryDto } from "@/api/backend";
 import { useItineraryStore } from '@/stores/itinerary.ts'
 import { useAuthStore} from '@/stores/auth.ts'
 import ItineraryDetails from '@/components/ItineraryDetails.vue'
