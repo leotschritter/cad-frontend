@@ -1,0 +1,10 @@
+.openapi-generator-ignore
+apis/FeedApi.ts
+apis/GraphApi.ts
+apis/index.ts
+index.ts
+models/ItineraryEventDTO.ts
+models/LikeActionDTO.ts
+models/LocationVisitDTO.ts
+models/index.ts
+runtime.ts
