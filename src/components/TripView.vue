@@ -248,19 +248,49 @@ async function saveAllLocations(): Promise<boolean> {
         .filter(url => !url.startsWith('data:'))
         .map(url => {
           try {
+            // Check if it's already a storage path (not a full URL)
+            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+              return url
+            }
+
             // Extract filename from signed URL
             const urlObj = new URL(url)
-            const pathParts = urlObj.pathname.split('/o/')
-            if (pathParts.length > 1 && pathParts[1]) {
-              // Decode URI component to get actual filename
-              return decodeURIComponent(pathParts[1])
+
+            if (urlObj.hostname.includes('googleapis.com') && urlObj.pathname.includes('/o/')) {
+              const pathParts = urlObj.pathname.split('/o/')
+              if (pathParts.length > 1 && pathParts[1]) {
+                // Decode the path (handles both URL encoding like %2F and regular encoding)
+                let storagePath = decodeURIComponent(pathParts[1])
+
+                // Remove any remaining query parameters (shouldn't be in pathname, but just in case)
+                const queryIndex = storagePath.indexOf('?')
+                if (queryIndex > 0) {
+                  storagePath = storagePath.substring(0, queryIndex)
+                }
+
+                return storagePath
+              }
             }
-            return url
+
+            // For direct Google Cloud Storage URLs: https://storage.googleapis.com/bucket-name/path/to/file.jpg?X-Goog-...
+            if (urlObj.hostname === 'storage.googleapis.com') {
+              // pathname is like: /bucket-name/location-images/123/file.jpg
+              const pathParts = urlObj.pathname.split('/')
+              // Skip empty first element and bucket name (first 2 elements)
+              const storagePath = pathParts.slice(2).join('/')
+              if (storagePath) {
+                return decodeURIComponent(storagePath)
+              }
+            }
+
+            console.warn('Could not extract storage path from URL:', url)
+            return null
           } catch (e) {
-            console.warn('Failed to parse image URL:', url)
-            return url
+            console.warn('Failed to parse image URL:', url, e)
+            return null
           }
         })
+        .filter((url): url is string => url !== null && url.length > 0 && url.length < 255) // Remove invalid/too long strings
 
       // Log file information if there are pending files
       if (loc.pendingFiles && loc.pendingFiles.length > 0) {
@@ -315,6 +345,10 @@ async function saveAllLocations(): Promise<boolean> {
         if (existingImageUrls.length > 0) {
           console.log(`  - Re-adding ${existingImageUrls.length} existing image(s) to location ${newLocation.id}`)
           console.log(`  - Existing URLs to re-add:`, existingImageUrls)
+          console.log(`  - Request payload:`, JSON.stringify({
+            locationId: newLocation.id!,
+            imageUrls: existingImageUrls
+          }, null, 2))
 
           const added = await locationStore.addImageUrlsToLocation({
             locationId: newLocation.id!,
@@ -323,6 +357,7 @@ async function saveAllLocations(): Promise<boolean> {
           console.log(`  - Re-add result:`, added)
           if (!added) {
             console.error('❌ Failed to re-add existing images!')
+            console.error('   This is likely a backend issue. Check backend logs for details.')
           } else {
             console.log('✅ Successfully re-added existing images')
           }
