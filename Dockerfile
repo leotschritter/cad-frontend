@@ -17,6 +17,9 @@ COPY . .
 ARG VITE_API_BASE_URL=http://localhost:8080
 ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
 
+ARG VITE_API_WEATHER_BASE_URL=http://localhost:8081
+ENV VITE_API_WEATHER_BASE_URL=${VITE_API_WEATHER_BASE_URL}
+
 ARG VITE_FIREBASE_API_KEY
 ARG VITE_FIREBASE_AUTH_DOMAIN
 ARG VITE_FIREBASE_PROJECT_ID
@@ -53,3 +56,4 @@ CMD /bin/sh -c "envsubst '\
   \$VITE_API_BASE_URL \
 ' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf \
 && nginx -g 'daemon off;'"
+
