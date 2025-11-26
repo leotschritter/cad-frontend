@@ -3,11 +3,6 @@ apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
   name: letsencrypt-prod
-  annotations:
-    # Deploy this before everything else and keep it even if chart is deleted
-    helm.sh/hook: pre-install,pre-upgrade
-    helm.sh/hook-weight: "-10"
-    helm.sh/resource-policy: keep
 spec:
   acme:
     # Let's Encrypt production server

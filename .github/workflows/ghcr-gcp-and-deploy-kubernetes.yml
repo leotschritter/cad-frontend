@@ -153,7 +153,7 @@ jobs:
             helm upgrade cad-frontend ./cad-frontend-chart \
               -f ./cad-frontend-chart/values-prod.yaml \
               --set cadFrontend.image=${{ needs.build-and-push.outputs.frontend_image }} \
-              --wait --timeout 5m
+              --wait --timeout 10m
           else
             echo "Installing new release..."
             helm install cad-frontend ./cad-frontend-chart \
@@ -162,7 +162,7 @@ jobs:
               --set smtp.password="${{ secrets.SMTP_PASSWORD }}" \
               --set travelWarningsApi.image=${{ needs.build-and-push.outputs.frontend_image }} \
               --create-namespace \
-              --wait --timeout 5m
+              --wait --timeout 10m
           fi
 
       - name: Verify Deployment
