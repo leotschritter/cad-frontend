@@ -144,6 +144,26 @@ jobs:
             echo "No pending operations found"
           fi
 
+      - name: Cleanup orphaned resources
+        run: |
+          echo "Checking for orphaned Certificate resources..."
+
+          # Check if frontend-tls-cert exists and is not managed by Helm
+          if kubectl get certificate frontend-tls-cert &>/dev/null; then
+            MANAGED_BY=$(kubectl get certificate frontend-tls-cert -o jsonpath='{.metadata.labels.app\.kubernetes\.io/managed-by}' 2>/dev/null || echo "")
+
+            if [ "$MANAGED_BY" != "Helm" ]; then
+              echo "Found orphaned Certificate (not managed by Helm), deleting..."
+              kubectl delete certificate frontend-tls-cert
+              echo "Orphaned Certificate deleted. Helm will recreate it."
+              echo "Note: The TLS secret will be preserved and reused."
+            else
+              echo "Certificate is already managed by Helm"
+            fi
+          else
+            echo "No orphaned Certificate found"
+          fi
+
       - name: Deploy with Helm
         working-directory: .
         run: |
@@ -153,7 +173,7 @@ jobs:
             helm upgrade cad-frontend ./cad-frontend-chart \
               -f ./cad-frontend-chart/values-prod.yaml \
               --set cadFrontend.image=${{ needs.build-and-push.outputs.frontend_image }} \
-              --wait --timeout 10m
+              --wait --timeout 5m
           else
             echo "Installing new release..."
             helm install cad-frontend ./cad-frontend-chart \
@@ -162,7 +182,7 @@ jobs:
               --set smtp.password="${{ secrets.SMTP_PASSWORD }}" \
               --set travelWarningsApi.image=${{ needs.build-and-push.outputs.frontend_image }} \
               --create-namespace \
-              --wait --timeout 10m
+              --wait --timeout 5m
           fi
 
       - name: Verify Deployment
