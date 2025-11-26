@@ -9,6 +9,7 @@ import ItineraryDetails from '@/components/ItineraryDetails.vue'
 import TripView from '@/components/TripView.vue'
 import TripViewReadOnly from "@/components/TripViewReadOnly.vue";
 import WeatherView from "@/components/WeatherView.vue";
+import ItineraryTravelWarnings from '@/components/ItineraryTravelWarnings.vue';
 import { getApi } from "@/services/api";
 
 export default defineComponent({
@@ -17,7 +18,8 @@ export default defineComponent({
     TripViewReadOnly,
     ItineraryDetails,
     TripView,
-    WeatherView
+    WeatherView,
+    ItineraryTravelWarnings
   },
   data() {
     return {
@@ -28,7 +30,10 @@ export default defineComponent({
       isEditLocations: ref(false),
       isShowLocations: ref(false),
       isShowWeather: ref(false),
+      isShowWarnings: ref(false),
       selected: ref<ItineraryDto | null>(null),
+      warningsItinerary: ref<ItineraryDto | null>(null),
+      warningsLocations: ref<any[]>([]),
       editingItinerary: ref<ItineraryDto | null>(null),
       weatherItinerary: ref<ItineraryDto | null>(null),
       weatherLocations: ref<any[]>([]),
@@ -100,7 +105,7 @@ export default defineComponent({
         }
       }
     },
-    async open(action: 'create' | 'showDetails' | 'editLocations' | 'showLocations' | 'showWeather', item?: ItineraryDto) {
+    async open(action: 'create' | 'showDetails' | 'editLocations' | 'showLocations' | 'showWeather' | 'showWarnings', item?: ItineraryDto) {
       if (action === 'create') {
         this.isCreate = true;
       } else if (action === 'showDetails') {
@@ -127,9 +132,23 @@ export default defineComponent({
           }
         }
         this.isShowWeather = true;
+      } else if (action === 'showWarnings') {
+        this.warningsItinerary = item || null;
+        // Load locations for travel warnings
+        if (item?.id) {
+          try {
+            const locations = await this.locationStore.getLocationsForItinerary(item.id);
+            console.log('Loaded locations for travel warnings:', locations);
+            this.warningsLocations = locations;
+          } catch (error) {
+            console.error('Failed to load locations for warnings:', error);
+            this.warningsLocations = [];
+          }
+        }
+        this.isShowWarnings = true;
       }
     },
-    async close(action: 'submit' | 'cancel' | 'closeDetails' | 'submitLocations' | 'cancelLocations' | 'cancelReadonlyLocations' | 'closeWeather') {
+    async close(action: 'submit' | 'cancel' | 'closeDetails' | 'submitLocations' | 'cancelLocations' | 'cancelReadonlyLocations' | 'closeWeather' | 'closeWarnings') {
       if (action === 'submit') {
         this.itineraryStore.addNewItinerary(this.newItinerary as ItineraryDto);
         this.clearItinerary();
@@ -166,6 +185,10 @@ export default defineComponent({
         this.isShowWeather = false;
         this.weatherItinerary = null;
         this.weatherLocations = [];
+      } else if (action === 'closeWarnings') {
+        this.isShowWarnings = false;
+        this.warningsItinerary = null;
+        this.warningsLocations = [];
       }
     },
     clearItinerary() {
@@ -185,7 +208,7 @@ export default defineComponent({
           navigator.language || 'de-DE',
           { dateStyle: 'short' }
       ).format(date)
-    },
+    }
   }
 })
 </script>
@@ -265,6 +288,15 @@ export default defineComponent({
                   color="blue"
               >
                 Show Weather
+              </v-btn>
+              <v-btn
+                  size="small"
+                  variant="text"
+                  prepend-icon="mdi-alert-circle-outline"
+                  @click="open('showWarnings', item)"
+                  color="orange"
+              >
+                Show Warnings
               </v-btn>
             </template>
           </v-data-table>
@@ -402,6 +434,34 @@ export default defineComponent({
             <v-card-actions class="pa-4">
               <v-spacer/>
               <v-btn variant="text" size="large" @click="close('closeWeather')">Close</v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
+
+        <!-- Travel Warnings dialog -->
+        <v-dialog v-model="isShowWarnings" max-width="95vw" persistent scrollable>
+          <v-card style="max-height: 90vh;">
+            <v-card-title class="text-h6 bg-orange d-flex align-center">
+              <v-icon class="mr-2">mdi-alert-circle-outline</v-icon>
+              Travel Warnings - {{ warningsItinerary?.title || '' }}
+              <v-chip v-if="warningsItinerary?.destination" size="small" class="ml-3" variant="tonal">
+                {{ warningsItinerary.destination }}
+              </v-chip>
+            </v-card-title>
+            <v-card-text class="pa-4" style="height: calc(90vh - 140px); overflow-y: auto;">
+              <ItineraryTravelWarnings
+                  v-if="warningsLocations.length > 0"
+                  :locations="warningsLocations"
+                  :notifications-enabled="true"
+              />
+              <v-alert v-else type="info" variant="tonal" class="ma-4">
+                <v-alert-title>No Locations Found</v-alert-title>
+                Please add locations to this itinerary first before viewing travel warnings.
+              </v-alert>
+            </v-card-text>
+            <v-card-actions class="pa-4">
+              <v-spacer/>
+              <v-btn variant="text" size="large" @click="close('closeWarnings')">Close</v-btn>
             </v-card-actions>
           </v-card>
         </v-dialog>

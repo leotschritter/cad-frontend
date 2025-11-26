@@ -1,0 +1,8 @@
+.openapi-generator-ignore
+apis/TravelWarningsApi.ts
+apis/UserTripsApi.ts
+apis/index.ts
+index.ts
+models/UserTripDto.ts
+models/index.ts
+runtime.ts

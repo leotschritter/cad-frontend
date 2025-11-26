@@ -28,3 +28,10 @@ coverage
 *.sw?
 
 *.tsbuildinfo
+
+src/views/TravelSafetyDashboard.vue
+src/components/TripWarningsWidget.vue
+src/components/TravelAlertsNotification.vue
+src/components/TravelWarningsDashboard.vue
+detailCountryResponse*.json
+travel-warnings-wow-factor-user-stories.md

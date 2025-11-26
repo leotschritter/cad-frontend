@@ -3,22 +3,24 @@
     <v-progress-circular indeterminate size="64" color="primary" />
     <span class="ml-4 text-h6">Loading locations...</span>
   </div>
-  <div v-else class="d-flex my-6 flex-lg-row justify-center align-start gap-4">
-    <div class="flex-1 map-pane">
-      <TripPlanner
-          :locations="locations"
-          :itinerary-id="itineraryId"
-          :short-description="shortDescription"
-          @update:locations="onPlannerUpdate"
-          @geocode-request="onGeocodeRequest"
-      />
-    </div>
-    <!-- Inline (collapsed) map -->
-    <div v-if="!mapExpanded" class="flex-1" style="height: 560px;">
-      <TripMap
-          :locations="locations"
-          v-model:expanded="mapExpanded"
-      />
+  <div v-else>
+    <div class="d-flex my-6 flex-lg-row justify-center align-start gap-4">
+      <div class="flex-1 map-pane">
+        <TripPlanner
+            :locations="locations"
+            :itinerary-id="itineraryId"
+            :short-description="shortDescription"
+            @update:locations="onPlannerUpdate"
+            @geocode-request="onGeocodeRequest"
+        />
+      </div>
+      <!-- Inline (collapsed) map -->
+      <div v-if="!mapExpanded" class="flex-1" style="height: 560px;">
+        <TripMap
+            :locations="locations"
+            v-model:expanded="mapExpanded"
+        />
+      </div>
     </div>
   </div>
 
@@ -39,6 +41,7 @@ import TripPlanner from './TripPlanner.vue'
 import TripMap from './TripMap.vue'
 import { useNominatim } from './useNominatim'
 import { useLocationStore } from '@/stores/location'
+import { useItineraryStore } from '@/stores/itinerary'
 
 export type Locations = {
   id: number
@@ -77,6 +80,7 @@ const emit = defineEmits<{
 
 // Initialize stores
 const locationStore = useLocationStore()
+const itineraryStore = useItineraryStore()
 const { geocode } = useNominatim()
 
 // Initialize locations - will be loaded from API if itineraryId is provided
@@ -102,10 +106,11 @@ async function loadLocations() {
 
   loading.value = true
   try {
-    const apiLocations = await locationStore.getLocationsForItinerary(props.itineraryId)
+    const loadedLocations = await locationStore.getLocationsForItinerary(props.itineraryId)
+
 
     // Convert API LocationDto to our Locations type
-    locations.value = apiLocations.map(loc => ({
+    locations.value = loadedLocations.map(loc => ({
       id: loc.id || Date.now(),
       name: loc.name || 'Unnamed Location',
       start: loc.fromDate ? new Date(loc.fromDate).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
@@ -246,7 +251,7 @@ async function saveAllLocations(): Promise<boolean> {
             // Extract filename from signed URL
             const urlObj = new URL(url)
             const pathParts = urlObj.pathname.split('/o/')
-            if (pathParts.length > 1) {
+            if (pathParts.length > 1 && pathParts[1]) {
               // Decode URI component to get actual filename
               return decodeURIComponent(pathParts[1])
             }
