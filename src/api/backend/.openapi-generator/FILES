@@ -11,6 +11,7 @@ models/AccommodationDto.ts
 models/AuthenticatedUser.ts
 models/CommentDto.ts
 models/CommentRequest.ts
+models/ImageUrlsDto.ts
 models/ItineraryDto.ts
 models/ItinerarySearchDto.ts
 models/ItinerarySearchResponseDto.ts

@@ -4,6 +4,7 @@ export * from './AccommodationDto';
 export * from './AuthenticatedUser';
 export * from './CommentDto';
 export * from './CommentRequest';
+export * from './ImageUrlsDto';
 export * from './ItineraryDto';
 export * from './ItinerarySearchDto';
 export * from './ItinerarySearchResponseDto';
