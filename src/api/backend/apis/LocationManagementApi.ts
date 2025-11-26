@@ -15,11 +15,14 @@
 
 import * as runtime from '../runtime';
 import type {
+  ImageUrlsDto,
   LocationDto,
   LocationImageUploadResponseDto,
   MessageResponseDto2,
 } from '../models/index';
 import {
+    ImageUrlsDtoFromJSON,
+    ImageUrlsDtoToJSON,
     LocationDtoFromJSON,
     LocationDtoToJSON,
     LocationImageUploadResponseDtoFromJSON,
@@ -62,7 +65,7 @@ export interface LocationLocationIdGetRequest {
 
 export interface LocationLocationIdImageUrlsPostRequest {
     locationId: number;
-    requestBody: Array<string>;
+    imageUrlsDto: ImageUrlsDto;
 }
 
 export interface LocationLocationIdImagesDeleteRequest {
@@ -363,10 +366,10 @@ export class LocationManagementApi extends runtime.BaseAPI {
             );
         }
 
-        if (requestParameters['requestBody'] == null) {
+        if (requestParameters['imageUrlsDto'] == null) {
             throw new runtime.RequiredError(
-                'requestBody',
-                'Required parameter "requestBody" was null or undefined when calling locationLocationIdImageUrlsPost().'
+                'imageUrlsDto',
+                'Required parameter "imageUrlsDto" was null or undefined when calling locationLocationIdImageUrlsPost().'
             );
         }
 
@@ -393,7 +396,7 @@ export class LocationManagementApi extends runtime.BaseAPI {
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
-            body: requestParameters['requestBody'],
+            body: ImageUrlsDtoToJSON(requestParameters['imageUrlsDto']),
         }, initOverrides);
 
         return new runtime.VoidApiResponse(response);

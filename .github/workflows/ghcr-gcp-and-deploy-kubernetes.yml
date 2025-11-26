@@ -57,6 +57,7 @@ jobs:
           push: true
           build-args: |
             VITE_API_BASE_URL=https://tripico-gateway-b1kp6vxb.ew.gateway.dev
+            VITE_API_WEATHER_BASE_URL=https://tripico-gateway-b1kp6vxb.ew.gateway.dev
             VITE_API_TRAVEL_WARNINGS_BASE_URL=https://tripico-gateway-b1kp6vxb.ew.gateway.dev
             VITE_FIREBASE_API_KEY=${{ vars.VITE_FIREBASE_API_KEY }}
             VITE_FIREBASE_AUTH_DOMAIN=${{ vars.VITE_FIREBASE_AUTH_DOMAIN }}
@@ -120,6 +121,49 @@ jobs:
           else
             echo "NGINX Ingress Controller already installed"
           fi
+
+      # - name: Cleanup pending Helm releases
+      #   run: |
+      #     echo "Checking for pending Helm operations..."
+      #     # Check if there are any pending-upgrade or pending-install secrets
+      #     PENDING_SECRETS=$(kubectl get secrets -l owner=helm,name=cad-frontend,status=pending-upgrade -o name 2>/dev/null || true)
+      #     PENDING_INSTALL=$(kubectl get secrets -l owner=helm,name=cad-frontend,status=pending-install -o name 2>/dev/null || true)
+
+      #     if [ -n "$PENDING_SECRETS" ]; then
+      #       echo "Found pending upgrade, cleaning up..."
+      #       kubectl delete secrets -l owner=helm,name=cad-frontend,status=pending-upgrade
+      #       echo "Pending upgrade cleaned up"
+      #     fi
+
+      #     if [ -n "$PENDING_INSTALL" ]; then
+      #       echo "Found pending install, cleaning up..."
+      #       kubectl delete secrets -l owner=helm,name=cad-frontend,status=pending-install
+      #       echo "Pending install cleaned up"
+      #     fi
+
+      #     if [ -z "$PENDING_SECRETS" ] && [ -z "$PENDING_INSTALL" ]; then
+      #       echo "No pending operations found"
+      #     fi
+
+      # - name: Cleanup orphaned resources
+      #   run: |
+      #     echo "Checking for orphaned Certificate resources..."
+
+      #     # Check if frontend-tls-cert exists and is not managed by Helm
+      #     if kubectl get certificate frontend-tls-cert &>/dev/null; then
+      #       MANAGED_BY=$(kubectl get certificate frontend-tls-cert -o jsonpath='{.metadata.labels.app\.kubernetes\.io/managed-by}' 2>/dev/null || echo "")
+
+      #       if [ "$MANAGED_BY" != "Helm" ]; then
+      #         echo "Found orphaned Certificate (not managed by Helm), deleting..."
+      #         kubectl delete certificate frontend-tls-cert
+      #         echo "Orphaned Certificate deleted. Helm will recreate it."
+      #         echo "Note: The TLS secret will be preserved and reused."
+      #       else
+      #         echo "Certificate is already managed by Helm"
+      #       fi
+      #     else
+      #       echo "No orphaned Certificate found"
+      #     fi
 
       - name: Deploy with Helm
         working-directory: .

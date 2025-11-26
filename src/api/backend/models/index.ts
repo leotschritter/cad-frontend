@@ -4,6 +4,7 @@ export * from './AccommodationDto';
 export * from './AuthenticatedUser';
 export * from './CommentDto';
 export * from './CommentRequest';
+export * from './ImageUrlsDto';
 export * from './ItineraryDto';
 export * from './ItinerarySearchDto';
 export * from './ItinerarySearchResponseDto';
@@ -18,3 +19,4 @@ export * from './ProfileImageResponseDto';
 export * from './ProfileImageUploadResponseDto';
 export * from './TransportDto';
 export * from './UserDto';
+export * from './ImageUrlsDto.ts'
