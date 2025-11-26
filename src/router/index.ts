@@ -18,6 +18,12 @@ const router = createRouter({
       component: () => import('../views/SearchItinerariesView.vue'),
     },
     {
+      path: '/feed',
+      name: 'feed',
+      meta: { requiresAuth: true },
+      component: () => import('../views/FeedView.vue'),
+    },
+    {
       path: '/profile',
       name: 'profile',
       meta: { requiresAuth: true },
