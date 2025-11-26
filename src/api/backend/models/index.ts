@@ -19,3 +19,4 @@ export * from './ProfileImageResponseDto';
 export * from './ProfileImageUploadResponseDto';
 export * from './TransportDto';
 export * from './UserDto';
+export * from './ImageUrlsDto.ts'
