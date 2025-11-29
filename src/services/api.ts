@@ -3,6 +3,8 @@ import { Configuration } from '@/api/backend';
 import * as BackendApis from '@/api/backend/apis';
 import * as WeatherApis from '@/api/weather-forecast-service/apis';
 import * as TravelWarningsApis from "@/api/travel-warnings-service/apis";
+import { Configuration as RecommendationConfiguration } from '@/api/recommendation-service/runtime';
+import * as RecommendationApis from '@/api/recommendation-service/apis';
 import { useAuthStore } from '@/stores/auth';
 
 // Prefer Vite env var, fallback to local dev
@@ -14,6 +16,9 @@ const weatherBasePath =
 
 const travelWarningsBasePath =
   import.meta.env.VITE_API_TRAVEL_WARNINGS_BASE_URL ?? 'http://localhost:8082';
+
+const recommendationBasePath =
+  import.meta.env.VITE_API_RECOMMENDATION_BASE_URL ?? 'http://localhost:8080';
 
 // Create a custom middleware to add the Firebase token
 const createAuthMiddleware = () => ({
@@ -67,9 +72,14 @@ export const travelWarningsApiConfig = new Configuration({
   middleware: [createAuthMiddleware()], // Travel Warnings API requires authentication
 });
 
+export const recommendationApiConfig = new RecommendationConfiguration({
+  basePath: recommendationBasePath,
+  middleware: [createAuthMiddleware()], // Recommendation API requires authentication
+});
+
 // Helper to grab a specific API class once (tree-shakable)
-// Supports both backend APIs and weather APIs
-export const getApi = <T extends keyof typeof BackendApis | keyof typeof WeatherApis | keyof typeof TravelWarningsApis>(key: T) => {
+// Supports backend APIs, weather APIs, travel warnings APIs, and recommendation APIs
+export const getApi = <T extends keyof typeof BackendApis | keyof typeof WeatherApis | keyof typeof TravelWarningsApis | keyof typeof RecommendationApis>(key: T) => {
   // Check if it's a weather API
   if (key in WeatherApis) {
     const ApiCtor = WeatherApis[key as keyof typeof WeatherApis] as any;
@@ -80,6 +90,12 @@ export const getApi = <T extends keyof typeof BackendApis | keyof typeof Weather
   if (key in TravelWarningsApis) {
     const ApiCtor = TravelWarningsApis[key as keyof typeof TravelWarningsApis] as any;
     return new ApiCtor(travelWarningsApiConfig);
+  }
+
+  // Check if it's a Recommendation API
+  if (key in RecommendationApis) {
+    const ApiCtor = RecommendationApis[key as keyof typeof RecommendationApis] as any;
+    return new ApiCtor(recommendationApiConfig);
   }
 
   // Otherwise it's a backend API
