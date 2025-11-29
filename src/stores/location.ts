@@ -180,7 +180,9 @@ export const useLocationStore = defineStore('location', {
       try {
         await locationApi.locationLocationIdImageUrlsPost({
           locationId: payload.locationId,
-          imageUrlsDto: payload.imageUrls
+          imageUrlsDto: {
+            imageUrls: payload.imageUrls
+          }
         })
 
         // Update local state

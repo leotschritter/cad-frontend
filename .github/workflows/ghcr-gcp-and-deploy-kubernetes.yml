@@ -2,7 +2,7 @@ name: Docker push to GHCR and GCP Artifact Registry and deploy Frontend Infrastr
 
 on:
   push:
-    branches: [ "main", "feature/exercise8-leo"  ]
+    branches: [ "main" ]
     tags: [ 'v*.*.*' ]
     paths:
       - "cad-frontend-chart/**"
@@ -179,9 +179,7 @@ jobs:
             echo "Installing new release..."
             helm install cad-frontend ./cad-frontend-chart \
               -f ./cad-frontend-chart/values-prod.yaml \
-              --set smtp.user="${{ secrets.SMTP_USER }}" \
-              --set smtp.password="${{ secrets.SMTP_PASSWORD }}" \
-              --set travelWarningsApi.image=${{ needs.build-and-push.outputs.frontend_image }} \
+              --set cadFrontend.image=${{ needs.build-and-push.outputs.frontend_image }} \
               --create-namespace \
               --wait --timeout 5m
           fi
