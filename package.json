@@ -10,6 +10,7 @@
     "api:gen": "openapi-generator-cli generate -i backend.openapi.yaml -g typescript-fetch -o src/api/backend --additional-properties=typescriptThreePlus=true,withSeparateModelsAndApi=true,supportsES6=true,modelPropertyNaming=original",
     "api:gen-weather-forecast-service": "openapi-generator-cli generate -i wf-service.openapi.yaml -g typescript-fetch -o src/api/weather-forecast-service --additional-properties=typescriptThreePlus=true,withSeparateModelsAndApi=true,supportsES6=true,modelPropertyNaming=original",
     "api:gen-travel-warnings-service": "openapi-generator-cli generate -i tw-service.openapi.yaml -g typescript-fetch -o src/api/travel-warnings-service --additional-properties=typescriptThreePlus=true,withSeparateModelsAndApi=true,supportsES6=true,modelPropertyNaming=original",
+    "api:gen-recommendation-service": "openapi-generator-cli generate -i recommendation-service.openapi.yaml -g typescript-fetch -o src/api/recommendation-service --additional-properties=typescriptThreePlus=true,withSeparateModelsAndApi=true,supportsES6=true,modelPropertyNaming=original",
     "dev": "vite",
     "build": "run-p type-check \"build-only {@}\" --",
     "preview": "vite preview",

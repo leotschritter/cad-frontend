@@ -48,6 +48,7 @@ export default defineComponent({
       likeApi: getApi('LikeManagementApi'),
       commentApi: getApi('CommentManagementApi'),
       locationApi: getApi('LocationManagementApi'),
+      graphApi: getApi('GraphApi'),
       authStore: useAuthStore(),
       userStore: useUserStore(),
       placeholderImage: 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&q=80',
@@ -83,30 +84,39 @@ export default defineComponent({
     async loadLikesForAllItems() {
       if (!this.authStore.user?.email) return;
 
+      let userLikes: LikeDto[] = [];
       try {
         // Lade alle Likes des aktuellen Users
-        const userLikes = await this.likeApi.likeUserGet();
+        userLikes = await this.likeApi.likeUserGet();
+      } catch (err: any) {
+        // Handle 404 or other errors gracefully - endpoint might not exist or user has no likes
+        const status = err?.response?.status;
+        if (status === 404) {
+          console.warn('Like user endpoint not found (404) - user may have no likes yet');
+          userLikes = [];
+        } else {
+          console.error('Failed to load user likes:', err);
+          userLikes = [];
+        }
+      }
 
-        // Lade Like-Count für jede Itinerary
-        for (const item of this.feedItems) {
-          if (item.itineraryId) {
-            try {
-              const likeResponse = await this.likeApi.likeItineraryItineraryIdGet({
-                itineraryId: item.itineraryId
-              });
-              item.likes = likeResponse.likeCount || 0;
+      // Lade Like-Count für jede Itinerary
+      for (const item of this.feedItems) {
+        if (item.itineraryId) {
+          try {
+            const likeResponse = await this.likeApi.likeItineraryItineraryIdGet({
+              itineraryId: item.itineraryId
+            });
+            item.likes = likeResponse.likeCount || 0;
 
-              // Prüfe, ob der User diese Itinerary geliked hat
-              item.isLiked = userLikes.some((like: LikeDto) => like.itineraryId === item.itineraryId);
-            } catch (err) {
-              console.error(`Failed to load likes for itinerary ${item.itineraryId}:`, err);
-              item.likes = 0;
-              item.isLiked = false;
-            }
+            // Prüfe, ob der User diese Itinerary geliked hat
+            item.isLiked = userLikes.some((like: LikeDto) => like.itineraryId === item.itineraryId);
+          } catch (err) {
+            console.error(`Failed to load likes for itinerary ${item.itineraryId}:`, err);
+            item.likes = 0;
+            item.isLiked = false;
           }
         }
-      } catch (err) {
-        console.error('Failed to load user likes:', err);
       }
     },
 
