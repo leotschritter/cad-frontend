@@ -213,6 +213,19 @@ export default defineComponent({
             itineraryId: item.itineraryId
           });
 
+          // Record unlike in recommendation service graph
+          try {
+            await this.graphApi.graphLikesDelete({
+              likeActionDTO: {
+                itineraryId: item.itineraryId
+              }
+            });
+            console.log(`Recorded unlike in recommendation graph for itinerary ${item.itineraryId}`);
+          } catch (graphError) {
+            console.warn('Failed to record unlike in recommendation graph:', graphError);
+            // Don't fail the unlike operation if graph update fails
+          }
+
           console.log(`Unliked itinerary ${item.itineraryId}`);
         } else {
           // Like
@@ -222,6 +235,19 @@ export default defineComponent({
           await this.likeApi.likeItineraryItineraryIdPost({
             itineraryId: item.itineraryId
           });
+
+          // Record like in recommendation service graph
+          try {
+            await this.graphApi.graphLikesPost({
+              likeActionDTO: {
+                itineraryId: item.itineraryId
+              }
+            });
+            console.log(`Recorded like in recommendation graph for itinerary ${item.itineraryId}`);
+          } catch (graphError) {
+            console.warn('Failed to record like in recommendation graph:', graphError);
+            // Don't fail the like operation if graph update fails
+          }
 
           console.log(`Liked itinerary ${item.itineraryId}`);
         }

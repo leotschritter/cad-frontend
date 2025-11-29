@@ -32,10 +32,49 @@ export const useItineraryStore = defineStore('itinerary', {
 
     async addNewItinerary(itineraryDto: ItineraryDto) {
       const itineraryApi = getApi('ItineraryManagementApi')
+      const graphApi = getApi('GraphApi')
+      const locationStore = useLocationStore()
+
       try {
          await itineraryApi.itineraryCreatePost({ itineraryDto: itineraryDto })
          // Reload all itineraries to get the newly created one with its backend-assigned ID
          await this.loadItineraries()
+
+         // Find the newly created itinerary (it should be the one matching our DTO)
+         const newItinerary = this.itineraries.find(
+           it => it.title === itineraryDto.title &&
+                 it.destination === itineraryDto.destination &&
+                 it.startDate === itineraryDto.startDate
+         )
+
+         if (newItinerary?.id) {
+           // Get location names for this itinerary
+           let locationNames: string[] = []
+           try {
+             const locations = await locationStore.getLocationsForItinerary(newItinerary.id)
+             locationNames = locations.map(loc => loc.name || '').filter(name => name.length > 0)
+           } catch (locError) {
+             console.warn('Failed to load locations for graph event:', locError)
+           }
+
+           // Record itinerary event in recommendation service graph
+           try {
+             await graphApi.graphItinerariesPost({
+               itineraryEventDTO: {
+                 itineraryId: newItinerary.id,
+                 title: newItinerary.title,
+                 description: newItinerary.shortDescription || newItinerary.detailedDescription,
+                 locationNames: locationNames,
+                 likesCount: 0,
+                 eventType: 'CREATED'
+               }
+             })
+             console.log(`Recorded itinerary creation in recommendation graph for itinerary ${newItinerary.id}`)
+           } catch (graphError) {
+             console.warn('Failed to record itinerary in recommendation graph:', graphError)
+             // Don't fail the itinerary creation if graph update fails
+           }
+         }
        } catch (error) {
          console.error('Failed to add itinerary:', error)
        }

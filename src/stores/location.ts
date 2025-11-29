@@ -79,6 +79,24 @@ export const useLocationStore = defineStore('location', {
         // Add to local state
         this.locations.push(location)
         this.currentLocation = location
+
+        // Record location visit in recommendation service graph
+        if (location.name && payload.itineraryId) {
+          try {
+            const graphApi = getApi('GraphApi')
+            await graphApi.graphLocationsVisitsPost({
+              locationVisitDTO: {
+                itineraryId: payload.itineraryId,
+                locationNames: [location.name]
+              }
+            })
+            console.log(`Recorded location visit in recommendation graph: ${location.name} for itinerary ${payload.itineraryId}`)
+          } catch (graphError) {
+            console.warn('Failed to record location visit in recommendation graph:', graphError)
+            // Don't fail the location creation if graph update fails
+          }
+        }
+
         return location
       } catch (err: any) {
         console.error('Error adding location to itinerary:', err)
