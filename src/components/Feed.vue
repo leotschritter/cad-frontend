@@ -1,8 +1,6 @@
 <script lang="ts">
 import { defineComponent } from "vue";
 import type { ItinerarySearchResponseDto } from "@/api/backend";
-import type { ItineraryEventDTO } from "@/api/recommendation-service";
-import { ItineraryEventDTOFromJSON } from "@/api/recommendation-service/models";
 import { getApi } from '@/services/api';
 import ItineraryFeed from '@/components/ItineraryFeed.vue';
 import { useAuthStore } from "@/stores/auth.ts";
@@ -32,23 +30,26 @@ export default defineComponent({
 
       try {
         const feedApi = getApi('FeedApi');
-        const itineraryApi = getApi('ItineraryManagementApi');
 
         // Fetch personalized feed recommendations
-        let recommendations: ItineraryEventDTO[] = [];
         try {
           const response = await feedApi.feedGetRaw();
           const jsonValue = await response.raw.json();
 
           console.log('Feed API raw response:', jsonValue);
 
-          // Handle case where response might not be an array
+          // Handle different response structures
           if (Array.isArray(jsonValue)) {
-            recommendations = jsonValue.map((item: any) => ItineraryEventDTOFromJSON(item));
-            console.log('Parsed recommendations:', recommendations);
+            // Direct array response - already full itinerary objects
+            this.itineraries = jsonValue;
+            console.log('Parsed itineraries from array:', this.itineraries);
+          } else if (jsonValue && Array.isArray(jsonValue.items)) {
+            // Object with items array (paginated response) - already full itinerary objects
+            this.itineraries = jsonValue.items;
+            console.log('Parsed itineraries from items:', this.itineraries);
           } else {
-            console.warn('Feed API returned non-array response:', jsonValue);
-            recommendations = [];
+            console.warn('Feed API returned unexpected response format:', jsonValue);
+            this.itineraries = [];
           }
         } catch (feedError: any) {
           console.error('Error fetching feed:', feedError);
@@ -58,66 +59,15 @@ export default defineComponent({
           return;
         }
 
-        if (!recommendations || recommendations.length === 0) {
-          console.log('No recommendations found');
+        if (!this.itineraries || this.itineraries.length === 0) {
+          console.log('No itineraries found in feed');
           this.infoMessage = 'No recommendations available at the moment. Check back later for personalized travel inspiration!';
           this.itineraries = [];
           return;
         }
 
-        console.log('Processing', recommendations.length, 'recommendations');
-
-        // Get all available itineraries to match with recommendations
-        // Using empty search to get all public itineraries
-        const allItineraries = await itineraryApi.itinerarySearchPost({
-          itinerarySearchDto: {}
-        });
-
-        console.log('All itineraries from search:', allItineraries);
-
-        // Create a map of itinerary IDs to full itinerary details
-        const itineraryMap = new Map<number, ItinerarySearchResponseDto>();
-        allItineraries.forEach(it => {
-          if (it.id) {
-            itineraryMap.set(it.id, it);
-          }
-        });
-
-        console.log('Itinerary map size:', itineraryMap.size);
-
-        // Match recommendations with full itinerary details
-        const matchedItineraries: ItinerarySearchResponseDto[] = [];
-
-        // Process recommendations in order to maintain relevance ranking
-        for (const rec of recommendations) {
-          if (!rec.itineraryId) continue;
-
-          const fullItinerary = itineraryMap.get(rec.itineraryId);
-          if (fullItinerary) {
-            matchedItineraries.push(fullItinerary);
-          } else {
-            // Fallback: create basic itinerary from recommendation data
-            matchedItineraries.push({
-              id: rec.itineraryId,
-              title: rec.title || 'Untitled Itinerary',
-              destination: rec.locationNames?.[0] || 'Unknown Destination',
-              shortDescription: rec.description || '',
-              detailedDescription: rec.description || '',
-              userName: 'Unknown',
-              userEmail: '',
-            } as ItinerarySearchResponseDto);
-          }
-        }
-
-        console.log('Matched itineraries:', matchedItineraries);
-
-        this.itineraries = matchedItineraries;
-
-        if (this.itineraries.length === 0) {
-          this.infoMessage = 'No recommendations available at the moment. Check back later for personalized travel inspiration!';
-        } else {
-          this.infoMessage = `Showing ${this.itineraries.length} personalized recommendation${this.itineraries.length === 1 ? '' : 's'}`;
-        }
+        console.log('Loaded', this.itineraries.length, 'itineraries from feed');
+        this.infoMessage = `Showing ${this.itineraries.length} personalized recommendation${this.itineraries.length === 1 ? '' : 's'}`;
       } catch (error: unknown) {
         console.error('Error loading feed:', error);
         this.errorMessage = 'Failed to load personalized feed. Please try again.';
