@@ -1,11 +1,11 @@
 // src/services/api.ts
-import { Configuration } from '@/api/backend';
-import * as BackendApis from '@/api/backend/apis';
-import * as WeatherApis from '@/api/weather-forecast-service/apis';
-import * as TravelWarningsApis from "@/api/travel-warnings-service/apis";
-import { Configuration as RecommendationConfiguration } from '@/api/recommendation-service/runtime';
-import * as RecommendationApis from '@/api/recommendation-service/apis';
-import { useAuthStore } from '@/stores/auth';
+import { Configuration } from '@/api/backend'
+import * as BackendApis from '@/api/backend/apis'
+import * as WeatherApis from '@/api/weather-forecast-service/apis'
+import * as TravelWarningsApis from '@/api/travel-warnings-service/apis'
+import { Configuration as RecommendationConfiguration } from '@/api/recommendation-service/runtime'
+import * as RecommendationApis from '@/api/recommendation-service/apis'
+import { useAuthStore } from '@/stores/auth'
 
 // Prefer Vite env var, fallback to local dev
 const basePath =
@@ -18,7 +18,7 @@ const travelWarningsBasePath =
   import.meta.env.VITE_API_TRAVEL_WARNINGS_BASE_URL ?? 'http://localhost:8082';
 
 const recommendationBasePath =
-  import.meta.env.VITE_API_RECOMMENDATION_BASE_URL ?? 'http://localhost:8083';
+  import.meta.env.VITE_API_RECOMMENDATIONS_BASE_URL ?? 'http://localhost:8083';
 
 // Create a custom middleware to add the Firebase token
 const createAuthMiddleware = () => ({
@@ -44,8 +44,8 @@ const createAuthMiddleware = () => ({
           ...context.init.headers,
           Authorization: `Bearer ${authStore.idToken}`,
         };
-        const retryResponse = await fetch(context.url, context.init);
-        return retryResponse;
+
+        return await fetch(context.url, context.init);
       } catch (refreshError) {
         await authStore.logout();
         window.location.href = '/login';
