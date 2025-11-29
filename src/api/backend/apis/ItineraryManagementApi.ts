@@ -28,6 +28,10 @@ import {
     ItinerarySearchResponseDtoToJSON,
 } from '../models/index';
 
+export interface ItineraryByIdsPostRequest {
+    requestBody: Array<number>;
+}
+
 export interface ItineraryCreatePostRequest {
     itineraryDto: ItineraryDto;
 }
@@ -40,6 +44,55 @@ export interface ItinerarySearchPostRequest {
  * 
  */
 export class ItineraryManagementApi extends runtime.BaseAPI {
+
+    /**
+     * Retrieves a list of itineraries by their IDs. Used by the recommendation service to fetch itinerary details. Requires authentication.
+     * Get itineraries by IDs
+     */
+    async itineraryByIdsPostRaw(requestParameters: ItineraryByIdsPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<ItineraryDto>>> {
+        if (requestParameters['requestBody'] == null) {
+            throw new runtime.RequiredError(
+                'requestBody',
+                'Required parameter "requestBody" was null or undefined when calling itineraryByIdsPost().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("BearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/itinerary/by-ids`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: requestParameters['requestBody'],
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(ItineraryDtoFromJSON));
+    }
+
+    /**
+     * Retrieves a list of itineraries by their IDs. Used by the recommendation service to fetch itinerary details. Requires authentication.
+     * Get itineraries by IDs
+     */
+    async itineraryByIdsPost(requestParameters: ItineraryByIdsPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<ItineraryDto>> {
+        const response = await this.itineraryByIdsPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
 
     /**
      * Creates a new travel itinerary for the authenticated user. Requires authentication. The itinerary must include title, destination, start date, and descriptions.

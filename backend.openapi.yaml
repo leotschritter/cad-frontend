@@ -33,27 +33,6 @@ components:
           type: string
         emailVerified:
           type: boolean
-    CommentDto:
-      type: object
-      properties:
-        id:
-          type: string
-        userEmail:
-          type: string
-        itineraryId:
-          type: integer
-          format: int64
-        comment:
-          type: string
-        createdAt:
-          $ref: "#/components/schemas/LocalDateTime"
-    CommentRequest:
-      type: object
-      properties:
-        userEmail:
-          type: string
-        comment:
-          type: string
     ImageUrlsDto:
       type: object
       required:
@@ -120,37 +99,11 @@ components:
           type: string
         userEmail:
           type: string
-    LikeDto:
-      type: object
-      properties:
-        id:
-          type: string
-        userEmail:
-          type: string
-        itineraryId:
-          type: integer
-          format: int64
-        createdAt:
-          $ref: "#/components/schemas/LocalDateTime"
-    LikeResponseDto:
-      type: object
-      properties:
-        itineraryId:
-          type: integer
-          format: int64
-        likeCount:
-          type: integer
-          format: int64
     LocalDate:
       type: string
       format: date
       examples:
         - 2022-03-10
-    LocalDateTime:
-      type: string
-      format: date-time
-      examples:
-        - 2022-03-10T12:15:50
     LocationDto:
       type: object
       properties:
@@ -192,20 +145,6 @@ components:
             type: string
           description: List of uploaded image URLs
     MessageResponseDto:
-      type: object
-      description: Response object for successful operations
-      properties:
-        message:
-          type: string
-          description: Success or info message
-    MessageResponseDto1:
-      type: object
-      description: Response object for successful operations
-      properties:
-        message:
-          type: string
-          description: Success or info message
-    MessageResponseDto2:
       type: object
       description: Response object for successful operations
       properties:
@@ -283,12 +222,8 @@ servers:
 tags:
   - name: Authentication
     description: Authentication-related endpoints
-  - name: Comment Management
-    description: Operations for managing comments on itineraries
   - name: Itinerary Management
     description: Operations for managing travel itineraries
-  - name: Like Management
-    description: Operations for managing likes and comments on itineraries
   - name: Location Management
     description: Operations for managing locations within itineraries
   - name: User Management
@@ -325,184 +260,73 @@ paths:
             application/json: {}
       security:
         - BearerAuth: []
-  /comment/itinerary/{itineraryId}:
-    get:
-      summary: Get comments for itinerary
-      description: "Retrieves all comments for a specific itinerary, ordered by creation\
-        \ date (newest first). Requires authentication."
-      tags:
-        - Comment Management
-      parameters:
-        - description: ID of the itinerary to get comments for
-          example: 1
-          required: true
-          name: itineraryId
-          in: path
-          schema:
-            type: integer
-            format: int64
-      responses:
-        "200":
-          description: Comments retrieved successfully
-          content:
-            application/json:
-              examples:
-                Comments response:
-                  summary: Example of comments response
-                  value:
-                    - id: abc123
-                      userEmail: john@example.com
-                      itineraryId: 1
-                      comment: Amazing trip! Would love to visit.
-                      createdAt: 2024-06-15T10:30:00
-                    - id: def456
-                      userEmail: jane@example.com
-                      itineraryId: 1
-                      comment: Great photos!
-                      createdAt: 2024-06-14T14:20:00
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/CommentDto"
-        "400":
-          description: Bad request - Itinerary ID is required
-          content:
-            application/json:
-              example:
-                error: Itinerary ID is required
-        "401":
-          description: Unauthorized - Missing or invalid token
-          content:
-            application/json:
-              example:
-                error: Missing or invalid Authorization header
-      security:
-        - BearerAuth: []
+  /itinerary/by-ids:
     post:
-      summary: Add comment to itinerary
-      description: Adds a comment to an itinerary. Requires authentication. Users
-        can add multiple comments.
+      summary: Get itineraries by IDs
+      description: Retrieves a list of itineraries by their IDs. Used by the recommendation
+        service to fetch itinerary details. Requires authentication.
       tags:
-        - Comment Management
-      parameters:
-        - description: ID of the itinerary to comment on
-          example: 1
-          required: true
-          name: itineraryId
-          in: path
-          schema:
-            type: integer
-            format: int64
+        - Itinerary Management
       requestBody:
+        description: List of itinerary IDs
         content:
           application/json:
+            examples:
+              ID List Example:
+                summary: Example list of itinerary IDs
+                value:
+                  - 1
+                  - 3
+                  - 5
+                  - 7
+                  - 9
             schema:
-              $ref: "#/components/schemas/CommentRequest"
+              type: array
+              items:
+                type: integer
+                format: int64
         required: true
       responses:
         "200":
-          description: Comment added successfully
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/CommentDto"
-        "400":
-          description: Bad request - Missing required fields or empty comment
-          content:
-            application/json:
-              example:
-                error: Comment text cannot be empty
-        "401":
-          description: Unauthorized - Missing or invalid token
-          content:
-            application/json:
-              example:
-                error: Missing or invalid Authorization header
-      security:
-        - BearerAuth: []
-  /comment/user/{userEmail}:
-    get:
-      summary: Get comments by user
-      description: "Retrieves all comments made by a specific user, ordered by creation\
-        \ date (newest first). Requires authentication."
-      tags:
-        - Comment Management
-      parameters:
-        - description: Email of the user to get comments for
-          example: john.doe@example.com
-          required: true
-          name: userEmail
-          in: path
-          schema:
-            type: string
-      responses:
-        "200":
-          description: User comments retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/CommentDto"
-        "400":
-          description: Bad request - User email is required
-          content:
-            application/json:
-              example:
-                error: User email is required
-        "401":
-          description: Unauthorized - Missing or invalid token
-          content:
-            application/json:
-              example:
-                error: Missing or invalid Authorization header
-      security:
-        - BearerAuth: []
-  /comment/{commentId}:
-    delete:
-      summary: Delete comment
-      description: Deletes a comment. Requires authentication. Users can only delete
-        their own comments.
-      tags:
-        - Comment Management
-      parameters:
-        - description: ID of the comment to delete
-          example: abc123
-          required: true
-          name: commentId
-          in: path
-          schema:
-            type: string
-      responses:
-        "200":
-          description: Comment deleted successfully
+          description: Itineraries retrieved successfully
           content:
             application/json:
               examples:
-                Delete Success:
-                  summary: Example of successful deletion
+                Itineraries by IDs Example:
+                  summary: Example of returned itineraries
                   value:
-                    message: Comment deleted successfully
+                    - id: 1
+                      title: Family Trip to Norway
+                      destination: Norway
+                      startDate: 2024-06-15
+                      shortDescription: Explore the fjords of southern Norway
+                      detailedDescription: A wonderful family trip to explore the beautiful
+                        fjords of southern Norway.
+                    - id: 3
+                      title: Summer in Paris
+                      destination: France
+                      startDate: 2025-07-01
+                      shortDescription: Romantic getaway in Paris
+                      detailedDescription: A week-long romantic trip exploring the city
+                        of lights.
               schema:
-                $ref: "#/components/schemas/MessageResponseDto"
-        "400":
-          description: Bad request - Missing required fields or unauthorized
-          content:
-            application/json:
-              example:
-                error: You can only delete your own comments
+                type: array
+                items:
+                  $ref: "#/components/schemas/ItineraryDto"
         "401":
           description: Unauthorized - Missing or invalid token
           content:
             application/json:
               example:
                 error: Missing or invalid Authorization header
-        "404":
-          description: Comment not found
+        "500":
+          description: Internal server error
           content:
             application/json:
               example:
-                error: Comment not found
+                error: An error occurred while retrieving itineraries
+        "400":
+          description: Bad Request
       security:
         - BearerAuth: []
   /itinerary/create:
@@ -696,148 +520,6 @@ paths:
                 error: An error occurred while searching itineraries
         "400":
           description: Bad Request
-      security:
-        - BearerAuth: []
-  /like/itinerary/{itineraryId}:
-    delete:
-      summary: Remove like from itinerary
-      description: Removes a like from an itinerary. Requires authentication.
-      tags:
-        - Like Management
-      parameters:
-        - description: ID of the itinerary to remove like from
-          example: 1
-          required: true
-          name: itineraryId
-          in: path
-          schema:
-            type: integer
-            format: int64
-      responses:
-        "200":
-          description: Like removed successfully
-          content:
-            application/json:
-              examples:
-                Like Removed:
-                  summary: Example of successful like removal
-                  value:
-                    message: Like removed successfully
-              schema:
-                $ref: "#/components/schemas/MessageResponseDto1"
-        "401":
-          description: Unauthorized - Missing or invalid token
-          content:
-            application/json:
-              example:
-                error: Missing or invalid Authorization header
-      security:
-        - BearerAuth: []
-    post:
-      summary: Like an itinerary
-      description: Adds a like to an itinerary. Requires authentication. Users can
-        only like once per itinerary.
-      tags:
-        - Like Management
-      parameters:
-        - description: ID of the itinerary to like
-          example: 1
-          required: true
-          name: itineraryId
-          in: path
-          schema:
-            type: integer
-            format: int64
-      responses:
-        "200":
-          description: Itinerary liked successfully
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/LikeDto"
-        "400":
-          description: Bad request - User already liked this itinerary
-          content:
-            application/json:
-              example:
-                error: User has already liked this itinerary
-        "401":
-          description: Unauthorized - Missing or invalid token
-          content:
-            application/json:
-              example:
-                error: Missing or invalid Authorization header
-      security:
-        - BearerAuth: []
-    get:
-      summary: Get like count for itinerary
-      description: Retrieves the number of likes for a specific itinerary. Requires
-        authentication.
-      tags:
-        - Like Management
-      parameters:
-        - description: ID of the itinerary to get likes for
-          example: 1
-          required: true
-          name: itineraryId
-          in: path
-          schema:
-            type: integer
-            format: int64
-      responses:
-        "200":
-          description: Like count retrieved successfully
-          content:
-            application/json:
-              examples:
-                Likes response:
-                  summary: Example of likes response
-                  value:
-                    itineraryId: 1
-                    likeCount: 5
-              schema:
-                $ref: "#/components/schemas/LikeResponseDto"
-        "400":
-          description: Bad request - Itinerary ID is required
-          content:
-            application/json:
-              example:
-                error: Itinerary ID is required
-        "401":
-          description: Unauthorized - Missing or invalid token
-          content:
-            application/json:
-              example:
-                error: Missing or invalid Authorization header
-      security:
-        - BearerAuth: []
-  /like/user:
-    get:
-      summary: Get likes by user
-      description: Retrieves all likes made by the authenticated user. Requires authentication.
-      tags:
-        - Like Management
-      responses:
-        "200":
-          description: User likes retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/LikeDto"
-        "400":
-          description: Bad request - User email is required
-          content:
-            application/json:
-              example:
-                error: User email is required
-        "401":
-          description: Unauthorized - Missing or invalid token
-          content:
-            application/json:
-              example:
-                error: Missing or invalid Authorization header
       security:
         - BearerAuth: []
   /location/itinerary/{itineraryId}:
@@ -1064,7 +746,7 @@ paths:
                   value:
                     message: Location deleted successfully
               schema:
-                $ref: "#/components/schemas/MessageResponseDto2"
+                $ref: "#/components/schemas/MessageResponseDto"
         "401":
           description: Unauthorized - Missing or invalid token
           content:
@@ -1213,7 +895,7 @@ paths:
                   value:
                     message: Image deleted successfully
               schema:
-                $ref: "#/components/schemas/MessageResponseDto2"
+                $ref: "#/components/schemas/MessageResponseDto"
         "400":
           description: Bad request - Image URL is required
           content:
