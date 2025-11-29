@@ -1,0 +1,13 @@
+.openapi-generator-ignore
+apis/CommentManagementApi.ts
+apis/LikeManagementApi.ts
+apis/index.ts
+index.ts
+models/CommentDto.ts
+models/CommentRequest.ts
+models/LikeDto.ts
+models/LikeResponseDto.ts
+models/MessageResponseDto.ts
+models/MessageResponseDto1.ts
+models/index.ts
+runtime.ts
