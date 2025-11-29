@@ -1,5 +1,5 @@
 <script lang="ts">
-import { defineComponent, ref } from "vue";
+import { defineComponent } from "vue";
 import type { ItinerarySearchResponseDto } from "@/api/backend";
 import type { ItineraryEventDTO } from "@/api/recommendation-service";
 import { ItineraryEventDTOFromJSON } from "@/api/recommendation-service/models";
@@ -14,10 +14,10 @@ export default defineComponent({
   },
   data() {
     return {
-      loading: ref(false),
+      loading: false,
       itineraries: [] as ItinerarySearchResponseDto[],
-      infoMessage: ref(''),
-      errorMessage: ref(''),
+      infoMessage: '',
+      errorMessage: '',
       authStore: useAuthStore(),
     }
   },
@@ -39,10 +39,13 @@ export default defineComponent({
         try {
           const response = await feedApi.feedGetRaw();
           const jsonValue = await response.raw.json();
-          
+
+          console.log('Feed API raw response:', jsonValue);
+
           // Handle case where response might not be an array
           if (Array.isArray(jsonValue)) {
             recommendations = jsonValue.map((item: any) => ItineraryEventDTOFromJSON(item));
+            console.log('Parsed recommendations:', recommendations);
           } else {
             console.warn('Feed API returned non-array response:', jsonValue);
             recommendations = [];
@@ -56,16 +59,21 @@ export default defineComponent({
         }
 
         if (!recommendations || recommendations.length === 0) {
+          console.log('No recommendations found');
           this.infoMessage = 'No recommendations available at the moment. Check back later for personalized travel inspiration!';
           this.itineraries = [];
           return;
         }
+
+        console.log('Processing', recommendations.length, 'recommendations');
 
         // Get all available itineraries to match with recommendations
         // Using empty search to get all public itineraries
         const allItineraries = await itineraryApi.itinerarySearchPost({
           itinerarySearchDto: {}
         });
+
+        console.log('All itineraries from search:', allItineraries);
 
         // Create a map of itinerary IDs to full itinerary details
         const itineraryMap = new Map<number, ItinerarySearchResponseDto>();
@@ -74,6 +82,8 @@ export default defineComponent({
             itineraryMap.set(it.id, it);
           }
         });
+
+        console.log('Itinerary map size:', itineraryMap.size);
 
         // Match recommendations with full itinerary details
         const matchedItineraries: ItinerarySearchResponseDto[] = [];
@@ -98,6 +108,8 @@ export default defineComponent({
             } as ItinerarySearchResponseDto);
           }
         }
+
+        console.log('Matched itineraries:', matchedItineraries);
 
         this.itineraries = matchedItineraries;
 
