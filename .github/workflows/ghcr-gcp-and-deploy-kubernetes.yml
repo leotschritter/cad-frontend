@@ -1,4 +1,4 @@
-name: Docker push to GHCR and GCP Artifact Registry and deploy Frontend Infrastructure
+name: Docker push to GHCR and GCP Artifact Registry and deploy Frontend Service to Cluster
 
 on:
   push:
