@@ -2,7 +2,7 @@ name: Docker push to GHCR and GCP Artifact Registry and deploy Frontend Infrastr
 
 on:
   push:
-    branches: [ "main", "feature/comments-likes-service" ]
+    branches: [ "main" ]
     tags: [ 'v*.*.*' ]
     paths:
       - "cad-frontend-chart/Chart.yaml"
