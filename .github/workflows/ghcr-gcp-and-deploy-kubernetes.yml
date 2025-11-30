@@ -5,9 +5,7 @@ on:
     branches: [ "main" ]
     tags: [ 'v*.*.*' ]
     paths:
-      - "cad-frontend-chart/**"
-      - "Dockerfile"
-      - "src/**"
+      - "cad-frontend-chart/Chart.yaml"
   workflow_dispatch:
 
 jobs:
@@ -60,6 +58,7 @@ jobs:
             VITE_API_WEATHER_BASE_URL=https://tripico-gateway-b1kp6vxb.ew.gateway.dev
             VITE_API_TRAVEL_WARNINGS_BASE_URL=https://tripico-gateway-b1kp6vxb.ew.gateway.dev
             VITE_API_RECOMMENDATIONS_BASE_URL=https://tripico-gateway-b1kp6vxb.ew.gateway.dev
+            VITE_API_COMMENTS_LIKES_BASE_URL=https://tripico-gateway-b1kp6vxb.ew.gateway.dev
             VITE_FIREBASE_API_KEY=${{ vars.VITE_FIREBASE_API_KEY }}
             VITE_FIREBASE_AUTH_DOMAIN=${{ vars.VITE_FIREBASE_AUTH_DOMAIN }}
             VITE_FIREBASE_PROJECT_ID=${{ vars.VITE_FIREBASE_PROJECT_ID }}

@@ -3,6 +3,7 @@ import { Configuration } from '@/api/backend'
 import * as BackendApis from '@/api/backend/apis'
 import * as WeatherApis from '@/api/weather-forecast-service/apis'
 import * as TravelWarningsApis from '@/api/travel-warnings-service/apis'
+import * as CommentsLikesApis from '@/api/comments-likes-service/apis'
 import { Configuration as RecommendationConfiguration } from '@/api/recommendation-service/runtime'
 import * as RecommendationApis from '@/api/recommendation-service/apis'
 import { useAuthStore } from '@/stores/auth'
@@ -19,6 +20,9 @@ const travelWarningsBasePath =
 
 const recommendationBasePath =
   import.meta.env.VITE_API_RECOMMENDATIONS_BASE_URL ?? 'http://localhost:8083';
+
+const commentsLikesBasePath =
+  import.meta.env.VITE_API_COMMENTS_LIKES_BASE_URL ?? 'http://localhost:8084';
 
 // Create a custom middleware to add the Firebase token
 const createAuthMiddleware = () => ({
@@ -77,6 +81,11 @@ export const recommendationApiConfig = new RecommendationConfiguration({
   middleware: [createAuthMiddleware()], // Recommendation API requires authentication
 });
 
+export const commentsLikesApiConfig = new Configuration({
+  basePath: commentsLikesBasePath,
+  middleware: [createAuthMiddleware()], // Comments-Likes API requires authentication
+});
+
 // Helper to grab a specific API class once (tree-shakable)
 // Supports backend APIs, weather APIs, travel warnings APIs, and recommendation APIs
 export const getApi = <T extends keyof typeof BackendApis | keyof typeof WeatherApis | keyof typeof TravelWarningsApis | keyof typeof RecommendationApis>(key: T) => {
@@ -96,6 +105,12 @@ export const getApi = <T extends keyof typeof BackendApis | keyof typeof Weather
   if (key in RecommendationApis) {
     const ApiCtor = RecommendationApis[key as keyof typeof RecommendationApis] as any;
     return new ApiCtor(recommendationApiConfig);
+  }
+
+  // Check if it's a Comments-Likes API
+  if (key in CommentsLikesApis) {
+    const ApiCtor = CommentsLikesApis[key as keyof typeof CommentsLikesApis] as any;
+    return new ApiCtor(commentsLikesApiConfig);
   }
 
   // Otherwise it's a backend API
