@@ -3,4 +3,4 @@ name: cad-frontend-chart
 description: A Helm chart for Kubernetes containing the deployment of the CAD Frontend from Tripico.
 type: application
 version: 0.1.0
-appVersion: "1.3.0"
+appVersion: "1.3.1"

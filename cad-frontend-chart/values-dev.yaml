@@ -13,8 +13,6 @@ ingress:
 # Lower resource requirements for local development
 cadFrontend:
   replicas: 1
-  imagePrefix: "europe-west1-docker.pkg.dev"
-  imagePostfix: "/docker-repo/travel-frontend:"
 
   resources:
     requests:

@@ -13,8 +13,6 @@ ingress:
 # Higher availability and resources for production
 cadFrontend:
   replicas: 2
-  imagePrefix: "europe-west1-docker.pkg.dev"
-  imagePostfix: "/docker-repo/travel-frontend:"
 
   resources:
     requests:

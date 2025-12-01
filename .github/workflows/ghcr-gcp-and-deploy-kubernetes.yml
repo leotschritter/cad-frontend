@@ -124,7 +124,7 @@ jobs:
       - check-versions
       - build-and-push
     if: ${{ needs.check-versions.outputs.cad_frontend_changed == 'true' || github.event_name == 'workflow_dispatch' }}
-    environment: ${{ github.ref_name == 'main' && 'prod' || 'dev ' }}
+    environment: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -222,12 +222,14 @@ jobs:
             helm upgrade cad-frontend ./cad-frontend-chart \
               -f ./cad-frontend-chart/${{ vars.VALUES_FILENAME }} \
               --set projectId=${{ vars.PROJECT_ID }} \
+              --set cadFrontend.image=${{ needs.build-and-push.outputs.frontend_image }} \
               --wait --timeout 5m
           else
             echo "Installing new release..."
             helm install cad-frontend ./cad-frontend-chart \
               -f ./cad-frontend-chart/${{ vars.VALUES_FILENAME }} \
               --set projectId=${{ vars.PROJECT_ID }} \
+              --set cadFrontend.image=${{ needs.build-and-push.outputs.frontend_image }} \
               --create-namespace \
               --wait --timeout 5m
           fi

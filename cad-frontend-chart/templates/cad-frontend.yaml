@@ -13,7 +13,7 @@ spec:
     spec:
       containers:
         - name: {{ .Values.cadFrontend.name }}
-          image: "{{ printf "%s/%s%s%s" .Values.projectId .Values.cadFrontend.imagePrefix .Values.cadFrontend.imagePostfix .Chart.AppVersion }}"
+          image: {{ .Values.cadFrontend.image }}
           imagePullPolicy: Always
           env:
             - name: PORT
