@@ -23,5 +23,3 @@
 .vscode/
 
 templates/deploy-local.sh
-templates/cert-manager.yaml
-templates/certificate.yaml

@@ -3,10 +3,12 @@
 
 # Use development ingress (without TLS)
 ingress:
-  enabled: true
-  useProd: false
   name: cad-frontend-ingress
-  host: cad-frontend.local
+  host: dev-frontend.tripico.fun
+  sslRedirect: "true"
+  forceSslRedirect: "true"
+  issuerName: letsencrypt-prod
+  secretName: frontend-tls
 
 # Lower resource requirements for local development
 cadFrontend:

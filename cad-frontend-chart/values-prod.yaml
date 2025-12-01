@@ -3,17 +3,16 @@
 
 # Use production ingress with TLS
 ingress:
-  enabled: true
-  useProd: true
   name: cad-frontend-ingress
   host: frontend.tripico.fun
   sslRedirect: "true"
   forceSslRedirect: "true"
+  issuerName: letsencrypt-prod
+  secretName: frontend-tls
 
 # Higher availability and resources for production
 cadFrontend:
   replicas: 2
-  image: europe-west1-docker.pkg.dev/graphite-plane-474510-s9/docker-repo/travel-frontend:latest
 
   resources:
     requests:
@@ -42,8 +41,3 @@ cadFrontend:
       initialDelaySeconds: 10
       failureThreshold: 3
       timeoutSeconds: 3
-
-certificate:
-  name: frontend-tls-cert
-  secretName: frontend-tls
-  issuerName: letsencrypt-prod
