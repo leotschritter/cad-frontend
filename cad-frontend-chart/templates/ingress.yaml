@@ -1,11 +1,10 @@
-{{- if and .Values.ingress.enabled .Values.ingress.useProd }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: {{ .Values.ingress.name }}
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /$1
-    cert-manager.io/cluster-issuer: {{ .Values.certificate.issuerName | quote }}
+    cert-manager.io/cluster-issuer: {{ .Values.ingress.issuerName | quote }}
     nginx.ingress.kubernetes.io/ssl-redirect: {{ .Values.ingress.sslRedirect | quote }}
     nginx.ingress.kubernetes.io/force-ssl-redirect: {{ .Values.ingress.forceSslRedirect | quote }}
 spec:
@@ -13,7 +12,7 @@ spec:
   tls:
     - hosts:
         - {{ .Values.ingress.host }}
-      secretName: {{ .Values.certificate.secretName }}
+      secretName: {{ .Values.ingress.secretName }}
   rules:
     - host: {{ .Values.ingress.host }}
       http:
@@ -25,4 +24,4 @@ spec:
                 name: {{ .Values.cadFrontend.name }}
                 port:
                   number: {{ .Values.cadFrontend.port }}
-{{- end }}
+

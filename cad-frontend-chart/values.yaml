@@ -1,4 +1,6 @@
+projectId: "graphite-plane-474510-s9"
+
 cadFrontend:
   name: cad-frontend
   port: 80
-  image: ghcr.io/leotschritter/cad-frontend:latest
+  image: "ghcr.io/leotschritter/cad-frontend:latest"
