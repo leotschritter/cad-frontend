@@ -34,6 +34,7 @@ export const useItineraryStore = defineStore('itinerary', {
       const itineraryApi = getApi('ItineraryManagementApi')
       const graphApi = getApi('GraphApi')
       const locationStore = useLocationStore()
+      const userTripsStore = useUserTripsStore()
 
       try {
          await itineraryApi.itineraryCreatePost({ itineraryDto: itineraryDto })
@@ -50,8 +51,9 @@ export const useItineraryStore = defineStore('itinerary', {
          if (newItinerary?.id) {
            // Get location names for this itinerary
            let locationNames: string[] = []
+           let locations: any[] = []
            try {
-             const locations = await locationStore.getLocationsForItinerary(newItinerary.id)
+             locations = await locationStore.getLocationsForItinerary(newItinerary.id)
              locationNames = locations.map(loc => loc.name || '').filter(name => name.length > 0)
            } catch (locError) {
              console.warn('Failed to load locations for graph event:', locError)
@@ -73,6 +75,22 @@ export const useItineraryStore = defineStore('itinerary', {
            } catch (graphError) {
              console.warn('Failed to record itinerary in recommendation graph:', graphError)
              // Don't fail the itinerary creation if graph update fails
+           }
+
+           // Automatically sync locations to travel warnings service
+           if (locations.length > 0) {
+             try {
+               console.log(`[Itinerary] Syncing ${locations.length} locations to travel warnings service for itinerary ${newItinerary.id}`)
+               await userTripsStore.syncItineraryLocationsAsTrips(
+                 newItinerary.id,
+                 locations,
+                 true // Always enable notifications
+               )
+               console.log(`[Itinerary] Successfully synced locations to travel warnings service`)
+             } catch (warningsError) {
+               console.warn('Failed to sync locations to travel warnings service:', warningsError)
+               // Don't fail the itinerary creation if warnings sync fails
+             }
            }
          }
        } catch (error) {

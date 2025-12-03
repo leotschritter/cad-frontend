@@ -42,6 +42,7 @@ import TripMap from './TripMap.vue'
 import { useNominatim } from './useNominatim'
 import { useLocationStore } from '@/stores/location'
 import { useItineraryStore } from '@/stores/itinerary'
+import { useUserTripsStore } from '@/stores/userTrips'
 
 export type Locations = {
   id: number
@@ -383,6 +384,33 @@ async function saveAllLocations(): Promise<boolean> {
     }
 
     console.log('All locations recreated. Success:', success)
+
+    // Sync locations to travel warnings service if successful
+    if (success && props.itineraryId) {
+      try {
+        console.log('[TripView] Reloading locations from backend to get coordinates...')
+        // Reload locations from backend to ensure they have coordinates
+        const savedLocations = await locationStore.getLocationsForItinerary(props.itineraryId)
+        console.log('[TripView] Reloaded locations:', savedLocations)
+
+        if (savedLocations.length > 0) {
+          console.log('[TripView] Syncing locations to travel warnings service...')
+          const userTripsStore = useUserTripsStore()
+
+          // The locations from backend already have the correct format (latitude, longitude, fromDate, toDate)
+          await userTripsStore.syncItineraryLocationsAsTrips(
+            props.itineraryId,
+            savedLocations,
+            true // Always enable notifications
+          )
+          console.log('[TripView] Successfully synced to travel warnings service')
+        }
+      } catch (warningsError) {
+        console.warn('[TripView] Failed to sync to travel warnings service:', warningsError)
+        // Don't fail the save operation if warnings sync fails
+      }
+    }
+
     return success
   } catch (error) {
     console.error('Error saving locations:', error)
