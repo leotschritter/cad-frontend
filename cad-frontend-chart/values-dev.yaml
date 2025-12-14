@@ -4,7 +4,7 @@
 # Use development ingress (without TLS)
 ingress:
   name: cad-frontend-ingress
-  host: dev-frontend.tripico.fun
+  host: frontend.develop.tripico.fun
   sslRedirect: "true"
   forceSslRedirect: "true"
   issuerName: letsencrypt-prod
