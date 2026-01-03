@@ -11,6 +11,7 @@ import TripViewReadOnly from "@/components/TripViewReadOnly.vue";
 import WeatherView from "@/components/WeatherView.vue";
 import ItineraryTravelWarnings from '@/components/ItineraryTravelWarnings.vue';
 import { getApi } from "@/services/api";
+import { isWeatherEnabled, isTravelWarningsEnabled } from '@/config/featureFlags';
 
 export default defineComponent({
   name: 'Itinerary',
@@ -66,6 +67,12 @@ export default defineComponent({
         ...item,
         likes: this.likesMap[item.id || 0] || 0
       }));
+    },
+    weatherEnabled() {
+      return isWeatherEnabled();
+    },
+    travelWarningsEnabled() {
+      return isTravelWarningsEnabled();
     }
   },
   created() {
@@ -281,6 +288,7 @@ export default defineComponent({
                 Show Locations
               </v-btn>
               <v-btn
+                  v-if="weatherEnabled"
                   size="small"
                   variant="text"
                   prepend-icon="mdi-weather-partly-cloudy"
@@ -290,6 +298,7 @@ export default defineComponent({
                 Show Weather
               </v-btn>
               <v-btn
+                  v-if="travelWarningsEnabled"
                   size="small"
                   variant="text"
                   prepend-icon="mdi-alert-circle-outline"
