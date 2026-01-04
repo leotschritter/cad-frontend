@@ -27,13 +27,21 @@ on:
           - prod
           - dev
         default: prod
+      cluster_name:
+        description: 'GKE Cluster to deploy to'
+        required: true
+        type: choice
+        options:
+          - tripico-cluster
+          - tripico-freemium-cluster
+        default: tripico-cluster
       tenant_number:
         description: 'Tenant number for standard tier (e.g., 1, 2, 3)'
         required: false
         type: string
         default: '1'
       api_gateway_url:
-        description: 'API Gateway URL (required for standard tier, e.g., https://api-standard-1.tripico.fun)'
+        description: 'API Gateway URL (required, e.g., https://api-freemium.tripico.fun)'
         required: false
         type: string
   repository_dispatch:
@@ -65,8 +73,11 @@ jobs:
           gcloud components install gke-gcloud-auth-plugin --quiet
 
       - name: Get GKE Credentials
+        env:
+          CLUSTER_NAME: ${{ github.event.client_payload.clusterName || inputs.cluster_name || 'tripico-cluster' }}
         run: |
-          gcloud container clusters get-credentials tripico-cluster \
+          echo "Using cluster: ${CLUSTER_NAME}"
+          gcloud container clusters get-credentials ${CLUSTER_NAME} \
             --region europe-west1 \
             --project ${{ vars.PROJECT_ID }}
 
@@ -97,12 +108,14 @@ jobs:
       matrix:
         tier:
           - name: freemium
+            clusterName: tripico-freemium-cluster
             apiGatewayUrl: "https://api-freemium.tripico.fun"
             features:
               weather: "true"
               recommendations: "false"
               travelWarnings: "true"
           - name: standard
+            clusterName: tripico-cluster
             apiGatewayUrl: "https://api-standard.tripico.fun"
             features:
               weather: "true"
@@ -215,8 +228,11 @@ jobs:
           gcloud components install gke-gcloud-auth-plugin --quiet
 
       - name: Get GKE Credentials
+        env:
+          CLUSTER_NAME: ${{ github.event.client_payload.clusterName || inputs.cluster_name || 'tripico-cluster' }}
         run: |
-          gcloud container clusters get-credentials tripico-cluster \
+          echo "Using cluster: ${CLUSTER_NAME}"
+          gcloud container clusters get-credentials ${CLUSTER_NAME} \
             --region europe-west1 \
             --project ${{ vars.PROJECT_ID }}
 
@@ -281,8 +297,11 @@ jobs:
           gcloud components install gke-gcloud-auth-plugin --quiet
 
       - name: Get GKE Credentials
+        env:
+          CLUSTER_NAME: ${{ github.event.client_payload.clusterName || inputs.cluster_name || 'tripico-cluster' }}
         run: |
-          gcloud container clusters get-credentials tripico-cluster \
+          echo "Using cluster: ${CLUSTER_NAME}"
+          gcloud container clusters get-credentials ${CLUSTER_NAME} \
             --region europe-west1 \
             --project ${{ vars.PROJECT_ID }}
 
@@ -370,8 +389,11 @@ jobs:
           gcloud components install gke-gcloud-auth-plugin --quiet
 
       - name: Get GKE Credentials
+        env:
+          CLUSTER_NAME: ${{ github.event.client_payload.clusterName || inputs.cluster_name || 'tripico-cluster' }}
         run: |
-          gcloud container clusters get-credentials tripico-cluster \
+          echo "Using cluster: ${CLUSTER_NAME}"
+          gcloud container clusters get-credentials ${CLUSTER_NAME} \
             --region europe-west1 \
             --project ${{ vars.PROJECT_ID }}
 
