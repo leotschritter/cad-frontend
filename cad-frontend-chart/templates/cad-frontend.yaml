@@ -2,7 +2,11 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ .Values.cadFrontend.name }}
+  {{- if .Values.namespaceOverride }}
+  namespace: {{ .Values.namespaceOverride }}
+  {{- end }}
 spec:
+  replicas: {{ .Values.cadFrontend.replicas }}
   selector:
     matchLabels:
       app: {{ .Values.cadFrontend.name }}
@@ -10,6 +14,10 @@ spec:
     metadata:
       labels:
         app: {{ .Values.cadFrontend.name }}
+      {{- if .Values.podAnnotations }}
+      annotations:
+        {{- toYaml .Values.podAnnotations | nindent 8 }}
+      {{- end }}
     spec:
       containers:
         - name: {{ .Values.cadFrontend.name }}
@@ -18,6 +26,14 @@ spec:
           env:
             - name: PORT
               value: {{ .Values.cadFrontend.port | quote }}
+            {{- if .Values.cadFrontend.features }}
+            - name: VITE_FEATURE_WEATHER
+              value: {{ .Values.cadFrontend.features.weather | quote }}
+            - name: VITE_FEATURE_RECOMMENDATIONS
+              value: {{ .Values.cadFrontend.features.recommendations | quote }}
+            - name: VITE_FEATURE_TRAVEL_WARNINGS
+              value: {{ .Values.cadFrontend.features.travelWarnings | quote }}
+            {{- end }}
 
           resources:
             requests:
@@ -58,6 +74,9 @@ apiVersion: v1
 kind: Service
 metadata:
   name: {{ .Values.cadFrontend.name }}
+  {{- if .Values.namespaceOverride }}
+  namespace: {{ .Values.namespaceOverride }}
+  {{- end }}
 spec:
   type: ClusterIP
   selector:
