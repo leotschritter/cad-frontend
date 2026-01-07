@@ -24,11 +24,11 @@ cadFrontend:
   image: "ghcr.io/leotschritter/cad-frontend:latest"
   replicas: 2
 
-  # Feature flags for freemium tier
+  # Feature flags for freemium tier - all disabled
   features:
-    weather: true
-    recommendations: false  # Disabled for freemium
-    travelWarnings: true
+    weather: false
+    recommendations: false
+    travelWarnings: false
 
   resources:
     requests:
