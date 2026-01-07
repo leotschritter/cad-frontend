@@ -253,6 +253,11 @@ jobs:
             --set apiGateway.baseUrl=$API_GATEWAY_URL \
             --wait --timeout 5m
 
+          # Force rollout to pull new image
+          echo "Forcing rollout restart to pull latest image..."
+          kubectl rollout restart deployment/cad-frontend-freemium -n freemium
+          kubectl rollout status deployment/cad-frontend-freemium -n freemium --timeout=5m
+
   deploy-standard:
     needs: build-and-push
     if: ${{ github.event_name == 'push' || github.event.client_payload.tier == 'all' || github.event.client_payload.tier == 'standard' || inputs.tier == 'all' || inputs.tier == 'standard' }}
@@ -337,6 +342,11 @@ jobs:
             --set ingress.secretName=$TLS_SECRET \
             --set apiGateway.baseUrl=$API_GATEWAY_URL \
             --wait --timeout 5m
+
+          # Force rollout to pull new image
+          echo "Forcing rollout restart to pull latest image..."
+          kubectl rollout restart deployment/cad-frontend-standard-${TENANT_NUMBER} -n $NAMESPACE
+          kubectl rollout status deployment/cad-frontend-standard-${TENANT_NUMBER} -n $NAMESPACE --timeout=5m
 
   verify-deployment:
     needs: [deploy-freemium, deploy-standard]
