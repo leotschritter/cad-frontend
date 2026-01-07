@@ -1,6 +1,9 @@
 # Freemium Tier - Production Environment
 namespaceOverride: freemium
 
+# GCP Project Configuration
+projectId: "graphite-plane-474510-s9"
+
 # API Gateway Configuration
 apiGateway:
   baseUrl: https://api-freemium.tripico.fun

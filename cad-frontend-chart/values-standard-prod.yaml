@@ -1,6 +1,9 @@
 # Standard Tier - Production Environment
 namespaceOverride: standard
 
+# GCP Project Configuration
+projectId: "graphite-plane-474510-s9"
+
 # API Gateway Configuration
 # Note: This will be overridden by pipeline with tenant-specific URL
 apiGateway:

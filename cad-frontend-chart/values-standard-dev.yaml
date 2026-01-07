@@ -1,6 +1,9 @@
 # Standard Tier - Development Environment
 namespaceOverride: standard
 
+# GCP Project Configuration
+projectId: "iaas-476910"
+
 # API Gateway Configuration
 # Note: This will be overridden by pipeline with tenant-specific URL
 apiGateway:

@@ -1,6 +1,9 @@
 # Freemium Tier - Development Environment
 namespaceOverride: freemium
 
+# GCP Project Configuration
+projectId: "iaas-476910"
+
 # API Gateway Configuration
 apiGateway:
   baseUrl: https://api-freemium.dev.tripico.fun
