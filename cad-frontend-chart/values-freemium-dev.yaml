@@ -26,9 +26,9 @@ cadFrontend:
 
   # Feature flags for freemium tier - all disabled
   features:
-    weather: false
-    recommendations: false
-    travelWarnings: false
+    weather: true
+    recommendations: true
+    travelWarnings: true
 
   resources:
     requests:
