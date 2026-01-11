@@ -99,9 +99,9 @@ jobs:
           - name: freemium
             apiGatewayUrl: "https://api-freemium.tripico.fun"
             features:
-              weather: "false"
-              recommendations: "false"
-              travelWarnings: "false"
+              weather: "true"
+              recommendations: "true"
+              travelWarnings: "true"
           - name: standard
             apiGatewayUrl: "https://api-standard.tripico.fun"
             features:
