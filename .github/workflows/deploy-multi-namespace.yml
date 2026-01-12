@@ -341,6 +341,7 @@ jobs:
             --set ingress.host=$DOMAIN \
             --set ingress.secretName=$TLS_SECRET \
             --set apiGateway.baseUrl=$API_GATEWAY_URL \
+            --set namespaceOverride=$NAMESPACE \
             --wait --timeout 5m
 
           # Force rollout to pull new image
