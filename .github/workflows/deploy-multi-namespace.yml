@@ -295,6 +295,19 @@ jobs:
         with:
           version: 'latest'
 
+      - name: Clean up old standard namespace resources
+        env:
+          TENANT_NUMBER: ${{ github.event_name == 'workflow_dispatch' && inputs.tenant_number || github.event.client_payload.tenant_number || '1' }}
+        run: |
+          # If this is tenant 1, clean up any old resources in the 'standard' namespace
+          if [ "$TENANT_NUMBER" = "1" ]; then
+            echo "Cleaning up old standard namespace resources..."
+            kubectl delete ingress cad-frontend-standard-ingress -n standard --ignore-not-found=true
+            kubectl delete deployment cad-frontend-standard -n standard --ignore-not-found=true
+            kubectl delete service cad-frontend-standard -n standard --ignore-not-found=true
+            kubectl delete namespace standard --ignore-not-found=true --wait=false || true
+          fi
+
       - name: Deploy Frontend to standard namespace
         env:
           DEPLOY_ENV: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || github.event.client_payload.environment || 'dev' }}
