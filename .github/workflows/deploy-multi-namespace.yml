@@ -74,13 +74,12 @@ jobs:
         run: |
           echo "Creating namespaces for frontend..."
           kubectl create namespace freemium --dry-run=client -o yaml | kubectl apply -f -
-          kubectl create namespace standard --dry-run=client -o yaml | kubectl apply -f -
 
           echo "Waiting for namespaces to be ready..."
           kubectl wait --for=jsonpath='{.status.phase}'=Active namespace/freemium --timeout=60s || true
-          kubectl wait --for=jsonpath='{.status.phase}'=Active namespace/standard --timeout=60s || true
 
           echo "Namespaces created successfully"
+          echo "Note: standard-X namespaces are created during deployment per tenant"
 
   build-and-push:
     runs-on: ubuntu-latest
@@ -299,12 +298,17 @@ jobs:
         env:
           TENANT_NUMBER: ${{ github.event_name == 'workflow_dispatch' && inputs.tenant_number || github.event.client_payload.tenant_number || '1' }}
         run: |
-          # If this is tenant 1, clean up any old resources in the 'standard' namespace
+          # Clean up old resources for this specific tenant
+          NAMESPACE="standard-${TENANT_NUMBER}"
+          
+          echo "Cleaning up old resources in namespace: $NAMESPACE"
+          kubectl delete ingress --all -n $NAMESPACE --ignore-not-found=true
+          kubectl delete deployment --all -n $NAMESPACE --ignore-not-found=true
+          kubectl delete service --all -n $NAMESPACE --ignore-not-found=true
+          
+          # Also clean up legacy 'standard' namespace if tenant 1 is being deployed
           if [ "$TENANT_NUMBER" = "1" ]; then
-            echo "Cleaning up old standard namespace resources..."
-            kubectl delete ingress cad-frontend-standard-ingress -n standard --ignore-not-found=true
-            kubectl delete deployment cad-frontend-standard -n standard --ignore-not-found=true
-            kubectl delete service cad-frontend-standard -n standard --ignore-not-found=true
+            echo "Also cleaning up legacy 'standard' namespace..."
             kubectl delete namespace standard --ignore-not-found=true --wait=false || true
           fi
 
@@ -402,12 +406,21 @@ jobs:
           echo "========== FREEMIUM NAMESPACE =========="
           kubectl get all -n freemium
           echo ""
-          echo "========== STANDARD NAMESPACE =========="
-          kubectl get all -n standard || echo "No standard namespace found"
+          echo "========== STANDARD NAMESPACES =========="
+          for ns in $(kubectl get namespaces -o name | grep "namespace/standard-" | cut -d/ -f2); do
+            echo "--- Namespace: $ns ---"
+            kubectl get all -n $ns
+            echo ""
+          done
           echo ""
           echo "========== INGRESSES =========="
           kubectl get ingress --all-namespaces
           echo ""
           echo "========== POD DETAILS =========="
           kubectl get pods -n freemium -o wide
-          kubectl get pods -n standard -o wide || echo "No standard pods found"
+          echo ""
+          for ns in $(kubectl get namespaces -o name | grep "namespace/standard-" | cut -d/ -f2); do
+            echo "--- Pods in $ns ---"
+            kubectl get pods -n $ns -o wide
+            echo ""
+          done
