@@ -182,7 +182,7 @@ jobs:
       - name: Export standard image reference
         if: matrix.tier.name == 'standard'
         id: export_standard_image
-        run: echo "image=europe-west1-docker.pkg.dev/${PROJECT_ID}/docker-repo/travel-frontend-standard:${{ steps.get_version.outputs.app_version }}" >> "$GITHUB_OUTPUT"
+        run: echo "image=europe-west1-docker.pkg.dev/${PROJECT_ID}/docker-repo/travel-frontend-freemium:${{ steps.get_version.outputs.app_version }}" >> "$GITHUB_OUTPUT"
 
       - name: Export app version
         id: export_app_version
