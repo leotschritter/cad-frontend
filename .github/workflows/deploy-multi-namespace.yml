@@ -18,6 +18,7 @@ on:
           - all
           - freemium
           - standard
+          - enterprise
         default: all
       environment:
         description: 'Environment to deploy to'
@@ -32,6 +33,11 @@ on:
         required: false
         type: string
         default: '1'
+      enterprise_name:
+        description: 'Custom enterprise name for domain (e.g., acme, contoso)'
+        required: false
+        type: string
+        default: 'enterprise-test'
       api_gateway_url:
         description: 'API Gateway URL (required, e.g., https://api-freemium.tripico.fun)'
         required: false
@@ -107,10 +113,17 @@ jobs:
               weather: "true"
               recommendations: "true"
               travelWarnings: "true"
+          - name: enterprise
+            apiGatewayUrl: "https://api-enterprise.tripico.fun"
+            features:
+              weather: "true"
+              recommendations: "true"
+              travelWarnings: "true"
 
     outputs:
       freemium_image: ${{ steps.export_freemium_image.outputs.image }}
       standard_image: ${{ steps.export_standard_image.outputs.image }}
+      enterprise_image: ${{ steps.export_enterprise_image.outputs.image }}
       app_version: ${{ steps.export_app_version.outputs.app_version }}
 
     steps:
@@ -181,6 +194,11 @@ jobs:
       - name: Export standard image reference
         if: matrix.tier.name == 'standard'
         id: export_standard_image
+        run: echo "image=europe-west1-docker.pkg.dev/${PROJECT_ID}/docker-repo/travel-frontend-freemium:${{ steps.get_version.outputs.app_version }}" >> "$GITHUB_OUTPUT"
+
+      - name: Export enterprise image reference
+        if: matrix.tier.name == 'enterprise'
+        id: export_enterprise_image
         run: echo "image=europe-west1-docker.pkg.dev/${PROJECT_ID}/docker-repo/travel-frontend-freemium:${{ steps.get_version.outputs.app_version }}" >> "$GITHUB_OUTPUT"
 
       - name: Export app version
@@ -366,12 +384,123 @@ jobs:
           kubectl rollout restart deployment/cad-frontend-standard-${TENANT_NUMBER} -n $NAMESPACE
           kubectl rollout status deployment/cad-frontend-standard-${TENANT_NUMBER} -n $NAMESPACE --timeout=5m
 
+  deploy-enterprise:
+    needs: build-and-push
+    if: |
+      (github.event_name == 'workflow_dispatch' && (inputs.tier == 'all' || inputs.tier == 'enterprise')) ||
+      (github.event_name == 'repository_dispatch' && (github.event.client_payload.tier == 'all' || github.event.client_payload.tier == 'enterprise'))
+    runs-on: ubuntu-latest
+    environment: ${{ github.event_name == 'workflow_dispatch' && (inputs.environment == 'prod' && 'prod' || 'dev') || github.event_name == 'repository_dispatch' && (github.event.client_payload.environment == 'prod' && 'prod' || 'dev') || (github.ref_name == 'main' && 'prod' || 'dev') }}
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.client_payload.ref || github.ref }}
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Install GKE Auth Plugin
+        run: |
+          gcloud components install gke-gcloud-auth-plugin --quiet
+
+      - name: Get GKE Credentials
+        run: |
+          gcloud container clusters get-credentials tripico-cluster \
+            --region europe-west1 \
+            --project ${{ vars.PROJECT_ID }}
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: '3.13.0'
+
+      - name: Clean up old enterprise namespace resources
+        env:
+          ENTERPRISE_NAME: ${{ github.event_name == 'workflow_dispatch' && inputs.enterprise_name || github.event.client_payload.enterprise_name || '' }}
+        run: |
+          # Validate enterprise name is provided
+          if [ -z "$ENTERPRISE_NAME" ]; then
+            echo "ERROR: Enterprise name is required for enterprise tier deployments"
+            echo "Please provide it via webhook payload (enterprise_name) or workflow_dispatch input (enterprise_name)"
+            exit 1
+          fi
+          
+          # Clean up old resources for this specific enterprise tenant
+          NAMESPACE="enterprise-${ENTERPRISE_NAME}"
+          
+          echo "Cleaning up old resources in namespace: $NAMESPACE"
+          kubectl delete ingress --all -n $NAMESPACE --ignore-not-found=true
+          kubectl delete deployment --all -n $NAMESPACE --ignore-not-found=true
+          kubectl delete service --all -n $NAMESPACE --ignore-not-found=true
+
+      - name: Deploy Frontend to enterprise namespace
+        env:
+          DEPLOY_ENV: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || github.event.client_payload.environment || 'dev' }}
+          ENTERPRISE_NAME: ${{ github.event_name == 'workflow_dispatch' && inputs.enterprise_name || github.event.client_payload.enterprise_name || '' }}
+          API_GATEWAY_URL: ${{ github.event.client_payload.apiGatewayUrl || inputs.api_gateway_url }}
+        run: |
+          VALUES_FILE=cad-frontend-chart/values-enterprise-dev.yaml
+          
+          if [ "$DEPLOY_ENV" = "prod" ]; then
+            VALUES_FILE=cad-frontend-chart/values-enterprise-prod.yaml
+            DOMAIN="frontend.${ENTERPRISE_NAME}.tripico.fun"
+          else
+            DOMAIN="frontend.${ENTERPRISE_NAME}.dev.tripico.fun"
+          fi
+
+          # Build namespace with enterprise name: enterprise-acme, enterprise-contoso, etc.
+          NAMESPACE="enterprise-${ENTERPRISE_NAME}"
+          TLS_SECRET="frontend-${ENTERPRISE_NAME}-tls"
+
+          echo "Deploying enterprise frontend to namespace: $NAMESPACE"
+          echo "Using values file: $VALUES_FILE"
+          echo "Domain: $DOMAIN"
+          echo "API Gateway URL: ${API_GATEWAY_URL}"
+          echo "Enterprise name: $ENTERPRISE_NAME"
+
+          # Validate API Gateway URL is provided for enterprise tier
+          if [ -z "$API_GATEWAY_URL" ]; then
+            echo "ERROR: API Gateway URL is required for enterprise tier deployments"
+            echo "Please provide it via webhook payload (apiGatewayUrl) or workflow_dispatch input (api_gateway_url)"
+            exit 1
+          fi
+
+          # Create namespace if it doesn't exist
+          kubectl create namespace $NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
+
+          helm upgrade --install cad-frontend-${ENTERPRISE_NAME} ./cad-frontend-chart \
+            --namespace $NAMESPACE \
+            --create-namespace \
+            --values $VALUES_FILE \
+            --set cadFrontend.image=${{ needs.build-and-push.outputs.enterprise_image }} \
+            --set cadFrontend.name=cad-frontend-${ENTERPRISE_NAME} \
+            --set ingress.host=$DOMAIN \
+            --set ingress.secretName=$TLS_SECRET \
+            --set apiGateway.baseUrl=$API_GATEWAY_URL \
+            --set namespaceOverride=$NAMESPACE \
+            --wait --timeout 5m
+
+          # Force rollout to pull new image
+          echo "Forcing rollout restart to pull latest image..."
+          kubectl rollout restart deployment/cad-frontend-${ENTERPRISE_NAME} -n $NAMESPACE
+          kubectl rollout status deployment/cad-frontend-${ENTERPRISE_NAME} -n $NAMESPACE --timeout=5m
+
   verify-deployment:
-    needs: [deploy-freemium, deploy-standard]
+    needs: [deploy-freemium, deploy-standard, deploy-enterprise]
     if: |
       always() &&
       (needs.deploy-freemium.result == 'success' || needs.deploy-freemium.result == 'skipped') &&
-      (needs.deploy-standard.result == 'success' || needs.deploy-standard.result == 'skipped')
+      (needs.deploy-standard.result == 'success' || needs.deploy-standard.result == 'skipped') &&
+      (needs.deploy-enterprise.result == 'success' || needs.deploy-enterprise.result == 'skipped')
     runs-on: ubuntu-latest
     environment: ${{ github.event_name == 'workflow_dispatch' && (inputs.environment == 'prod' && 'prod' || 'dev') || github.event_name == 'repository_dispatch' && (github.event.client_payload.environment == 'prod' && 'prod' || 'dev') || (github.ref_name == 'main' && 'prod' || 'dev') }}
     permissions:
@@ -413,6 +542,13 @@ jobs:
             echo ""
           done
           echo ""
+          echo "========== ENTERPRISE NAMESPACES =========="
+          for ns in $(kubectl get namespaces -o name | grep "namespace/enterprise-" | cut -d/ -f2); do
+            echo "--- Namespace: $ns ---"
+            kubectl get all -n $ns
+            echo ""
+          done
+          echo ""
           echo "========== INGRESSES =========="
           kubectl get ingress --all-namespaces
           echo ""
@@ -420,6 +556,12 @@ jobs:
           kubectl get pods -n freemium -o wide
           echo ""
           for ns in $(kubectl get namespaces -o name | grep "namespace/standard-" | cut -d/ -f2); do
+            echo "--- Pods in $ns ---"
+            kubectl get pods -n $ns -o wide
+            echo ""
+          done
+          echo ""
+          for ns in $(kubectl get namespaces -o name | grep "namespace/enterprise-" | cut -d/ -f2); do
             echo "--- Pods in $ns ---"
             kubectl get pods -n $ns -o wide
             echo ""

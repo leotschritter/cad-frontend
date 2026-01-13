@@ -1,0 +1,66 @@
+# Enterprise Tier - Development Environment
+# Full isolation with dedicated GKE cluster per tenant
+namespaceOverride: enterprise
+
+# GCP Project Configuration
+projectId: "iaas-476910"
+
+# API Gateway Configuration
+# Note: This will be overridden by pipeline with tenant-specific URL
+apiGateway:
+  baseUrl: https://api-enterprise.dev.tripico.fun
+
+# Use development ingress with custom domain
+ingress:
+  name: cad-frontend-enterprise-ingress
+  host: frontend-enterprise.dev.tripico.fun  # Will be overridden with custom name
+  sslRedirect: "true"
+  forceSslRedirect: "true"
+  issuerName: letsencrypt-prod
+  secretName: frontend-enterprise-tls
+
+# Enterprise tier with maximum resources and customization
+cadFrontend:
+  name: cad-frontend-enterprise
+  port: 80
+  image: "ghcr.io/leotschritter/cad-frontend:latest"
+  replicas: 2  # Development still gets multiple replicas for testing
+
+  # Feature flags for enterprise tier - all features enabled
+  features:
+    weather: true
+    recommendations: true
+    travelWarnings: true
+
+  # Enterprise tier gets significantly more resources
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"
+
+  probes:
+    startup:
+      path: /
+      initialDelaySeconds: 5
+      periodSeconds: 5
+      failureThreshold: 10
+      timeoutSeconds: 3
+    readiness:
+      path: /
+      periodSeconds: 10
+      initialDelaySeconds: 0
+      failureThreshold: 3
+      timeoutSeconds: 5
+    liveness:
+      path: /
+      periodSeconds: 30
+      initialDelaySeconds: 10
+      failureThreshold: 3
+      timeoutSeconds: 3
+
+podAnnotations:
+  tier: enterprise
+
