@@ -413,8 +413,10 @@ jobs:
           gcloud components install gke-gcloud-auth-plugin --quiet
 
       - name: Get GKE Credentials
+        env:
+          ENTERPRISE_NAME: ${{ github.event_name == 'workflow_dispatch' && inputs.enterprise_name || github.event.client_payload.enterprise_name || '' }}
         run: |
-          gcloud container clusters get-credentials tripico-cluster \
+          gcloud container clusters get-credentials tripico-${ENTERPRISE_NAME}-cluster \
             --region europe-west1 \
             --project ${{ vars.PROJECT_ID }}
 
