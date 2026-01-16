@@ -4,6 +4,11 @@ namespaceOverride: freemium
 # GCP Project Configuration
 projectId: "graphite-plane-474510-s9"
 
+# Identity Platform Configuration
+# Freemium tier uses NO tenant ID - users are in the default Identity Platform
+identityPlatform:
+  tenantId: ""
+
 # API Gateway Configuration
 apiGateway:
   baseUrl: https://api-freemium.tripico.fun

@@ -4,6 +4,12 @@ namespaceOverride: standard
 # GCP Project Configuration
 projectId: "iaas-476910"
 
+# Identity Platform Configuration
+# Standard tier uses tenant-specific tenant ID for user isolation
+# This is passed via --set identityPlatform.tenantId=<tenant_id> at deployment
+identityPlatform:
+  tenantId: ""  # Set via pipeline: --set identityPlatform.tenantId=std-standard-1
+
 # API Gateway Configuration
 # Note: This will be overridden by pipeline with tenant-specific URL
 apiGateway:

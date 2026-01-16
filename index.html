@@ -9,6 +9,8 @@
   </head>
   <body>
     <div id="app"></div>
+    <!-- Runtime config must load before app (blocking) to ensure tenant ID is available -->
+    <script src="/runtime-config.js"></script>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

@@ -163,14 +163,12 @@ jobs:
           VERSION=$(grep '^appVersion:' cad-frontend-chart/Chart.yaml | awk '{print $2}' | tr -d '"')
           echo "app_version=$VERSION" >> $GITHUB_OUTPUT
 
-      # Build and push to both registries with tier-specific feature flags
+      # Build and push to both registries with tier-specific API Gateway URL
+      # NOTE: Tenant ID is NOT baked in at build time - it's injected at runtime via Helm
       - name: Build and push ${{ matrix.tier.name }} frontend
         env:
           # Priority: 1. webhook payload, 2. workflow_dispatch input, 3. matrix default
           API_GATEWAY_URL: ${{ github.event.client_payload.apiGatewayUrl || inputs.api_gateway_url || matrix.tier.apiGatewayUrl }}
-          # Tenant ID for multi-tenancy (freemium = empty, standard/enterprise = from input or payload)
-          # Only standard and enterprise tiers should have a tenant ID
-          TENANT_ID: ${{ matrix.tier.name != 'freemium' && (github.event.client_payload.tenant_id || inputs.tenant_id) || '' }}
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -185,7 +183,6 @@ jobs:
             VITE_FIREBASE_API_KEY=${{ vars.VITE_FIREBASE_API_KEY }}
             VITE_FIREBASE_AUTH_DOMAIN=${{ vars.VITE_FIREBASE_AUTH_DOMAIN }}
             VITE_FIREBASE_PROJECT_ID=${{ vars.VITE_FIREBASE_PROJECT_ID }}
-            VITE_FIREBASE_TENANT_ID=${{ env.TENANT_ID }}
             VITE_FEATURE_WEATHER=${{ github.event.client_payload.features.weather || matrix.tier.features.weather }}
             VITE_FEATURE_RECOMMENDATIONS=${{ github.event.client_payload.features.recommendations || matrix.tier.features.recommendations }}
             VITE_FEATURE_TRAVEL_WARNINGS=${{ github.event.client_payload.features.travelWarnings || matrix.tier.features.travelWarnings }}
@@ -203,12 +200,12 @@ jobs:
       - name: Export standard image reference
         if: matrix.tier.name == 'standard'
         id: export_standard_image
-        run: echo "image=europe-west1-docker.pkg.dev/${PROJECT_ID}/docker-repo/travel-frontend-freemium:${{ steps.get_version.outputs.app_version }}" >> "$GITHUB_OUTPUT"
+        run: echo "image=europe-west1-docker.pkg.dev/${PROJECT_ID}/docker-repo/travel-frontend-standard:${{ steps.get_version.outputs.app_version }}" >> "$GITHUB_OUTPUT"
 
       - name: Export enterprise image reference
         if: matrix.tier.name == 'enterprise'
         id: export_enterprise_image
-        run: echo "image=europe-west1-docker.pkg.dev/${PROJECT_ID}/docker-repo/travel-frontend-freemium:${{ steps.get_version.outputs.app_version }}" >> "$GITHUB_OUTPUT"
+        run: echo "image=europe-west1-docker.pkg.dev/${PROJECT_ID}/docker-repo/travel-frontend-enterprise:${{ steps.get_version.outputs.app_version }}" >> "$GITHUB_OUTPUT"
 
       - name: Export app version
         id: export_app_version
@@ -344,6 +341,7 @@ jobs:
           DEPLOY_ENV: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || github.event.client_payload.environment || 'dev' }}
           TENANT_NUMBER: ${{ github.event_name == 'workflow_dispatch' && inputs.tenant_number || github.event.client_payload.tenant_number || '1' }}
           API_GATEWAY_URL: ${{ github.event.client_payload.apiGatewayUrl || inputs.api_gateway_url }}
+          TENANT_ID: ${{ github.event.client_payload.tenant_id || inputs.tenant_id }}
         run: |
           VALUES_FILE=cad-frontend-chart/values-standard-dev.yaml
           DOMAIN_BASE="frontend-standard.dev.tripico.fun"
@@ -364,6 +362,7 @@ jobs:
           echo "Using values file: $VALUES_FILE"
           echo "Domain: $DOMAIN"
           echo "API Gateway URL: ${API_GATEWAY_URL}"
+          echo "Tenant ID: ${TENANT_ID}"
           echo "Tenant number: $TENANT_NUMBER"
 
           # Validate API Gateway URL is provided for standard tier
@@ -371,6 +370,12 @@ jobs:
             echo "ERROR: API Gateway URL is required for standard tier deployments"
             echo "Please provide it via webhook payload (apiGatewayUrl) or workflow_dispatch input (api_gateway_url)"
             exit 1
+          fi
+
+          # Validate Tenant ID is provided for standard tier
+          if [ -z "$TENANT_ID" ]; then
+            echo "WARNING: Tenant ID not provided - users will not be isolated"
+            echo "Get it from Terraform output: terraform output identity_platform_tenant_id"
           fi
 
           # Create namespace if it doesn't exist
@@ -385,6 +390,7 @@ jobs:
             --set ingress.host=$DOMAIN \
             --set ingress.secretName=$TLS_SECRET \
             --set apiGateway.baseUrl=$API_GATEWAY_URL \
+            --set identityPlatform.tenantId=$TENANT_ID \
             --set namespaceOverride=$NAMESPACE \
             --wait --timeout 5m
 
@@ -458,9 +464,10 @@ jobs:
           DEPLOY_ENV: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || github.event.client_payload.environment || 'dev' }}
           ENTERPRISE_NAME: ${{ github.event_name == 'workflow_dispatch' && inputs.enterprise_name || github.event.client_payload.enterprise_name || '' }}
           API_GATEWAY_URL: ${{ github.event.client_payload.apiGatewayUrl || inputs.api_gateway_url }}
+          TENANT_ID: ${{ github.event.client_payload.tenant_id || inputs.tenant_id }}
         run: |
           VALUES_FILE=cad-frontend-chart/values-enterprise-dev.yaml
-          
+
           if [ "$DEPLOY_ENV" = "prod" ]; then
             VALUES_FILE=cad-frontend-chart/values-enterprise-prod.yaml
             DOMAIN="frontend.${ENTERPRISE_NAME}.tripico.fun"
@@ -476,6 +483,7 @@ jobs:
           echo "Using values file: $VALUES_FILE"
           echo "Domain: $DOMAIN"
           echo "API Gateway URL: ${API_GATEWAY_URL}"
+          echo "Tenant ID: ${TENANT_ID}"
           echo "Enterprise name: $ENTERPRISE_NAME"
 
           # Validate API Gateway URL is provided for enterprise tier
@@ -483,6 +491,12 @@ jobs:
             echo "ERROR: API Gateway URL is required for enterprise tier deployments"
             echo "Please provide it via webhook payload (apiGatewayUrl) or workflow_dispatch input (api_gateway_url)"
             exit 1
+          fi
+
+          # Validate Tenant ID is provided for enterprise tier
+          if [ -z "$TENANT_ID" ]; then
+            echo "WARNING: Tenant ID not provided - users will not be isolated"
+            echo "Get it from Terraform output: terraform output identity_platform_tenant_id"
           fi
 
           # Create namespace if it doesn't exist
@@ -497,6 +511,7 @@ jobs:
             --set ingress.host=$DOMAIN \
             --set ingress.secretName=$TLS_SECRET \
             --set apiGateway.baseUrl=$API_GATEWAY_URL \
+            --set identityPlatform.tenantId=$TENANT_ID \
             --set namespaceOverride=$NAMESPACE \
             --wait --timeout 5m
 

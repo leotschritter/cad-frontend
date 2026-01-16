@@ -5,6 +5,12 @@ namespaceOverride: enterprise
 # GCP Project Configuration
 projectId: "iaas-476910"
 
+# Identity Platform Configuration
+# Enterprise tier uses tenant-specific tenant ID for complete user isolation
+# This is passed via --set identityPlatform.tenantId=<tenant_id> at deployment
+identityPlatform:
+  tenantId: ""  # Set via pipeline: --set identityPlatform.tenantId=ent-acme-corp
+
 # API Gateway Configuration
 # Note: This will be overridden by pipeline with tenant-specific URL
 apiGateway:

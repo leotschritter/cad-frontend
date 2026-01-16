@@ -5,6 +5,11 @@ namespaceOverride: enterprise
 # GCP Project Configuration
 projectId: "graphite-plane-474510-s9"
 
+# Identity Platform Configuration
+# Enterprise tier uses tenant-specific tenant ID for complete user isolation
+identityPlatform:
+  tenantId: ""  # Set via pipeline: --set identityPlatform.tenantId=ent-acme-corp
+
 # API Gateway Configuration
 # Note: This will be overridden by pipeline with tenant-specific URL
 apiGateway:
