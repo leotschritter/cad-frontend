@@ -73,6 +73,7 @@ export default defineComponent({
         <v-list-item prepend-icon="mdi-routes" title="My Itineraries" to="/" />
         <v-list-item v-if="recommendationsEnabled" prepend-icon="mdi-rss" title="Feed" to="/feed" />
         <v-list-item prepend-icon="mdi-magnify" title="Search Itineraries" to="/search" />
+        <v-list-item prepend-icon="mdi-tag-multiple" title="Pricing" to="/pricing" />
       </v-list>
     </v-navigation-drawer>
 

@@ -30,6 +30,12 @@ const router = createRouter({
       component: () => import('../views/ProfileView.vue'),
     },
     {
+      path: '/pricing',
+      name: 'pricing',
+      meta: { requiresAuth: false },
+      component: () => import('../views/PricingView.vue'),
+    },
+    {
       path: '/verify-email',
       name: 'verify-email',
       meta: { requiresAuth: true, skipVerification: true },
