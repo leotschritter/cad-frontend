@@ -1,0 +1,607 @@
+name: Deploy Frontend to Multi-Namespace Architecture
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - '.github/workflows/deploy-multi-namespace.yml'
+      - 'cad-frontend-chart/**'
+  workflow_dispatch:
+    inputs:
+      tier:
+        description: 'Which tier to deploy'
+        required: true
+        type: choice
+        options:
+          - all
+          - freemium
+          - standard
+          - enterprise
+        default: all
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        type: choice
+        options:
+          - prod
+          - dev
+        default: prod
+      tenant_number:
+        description: 'Tenant number for standard tier (e.g., 1, 2, 3)'
+        required: false
+        type: string
+        default: '1'
+      enterprise_name:
+        description: 'Custom enterprise name for domain (e.g., acme, contoso)'
+        required: false
+        type: string
+        default: 'enterprise-test'
+      api_gateway_url:
+        description: 'API Gateway URL (required, e.g., https://api-freemium.tripico.fun)'
+        required: false
+        type: string
+      tenant_id:
+        description: 'Identity Platform Tenant ID for standard/enterprise (from Terraform output)'
+        required: false
+        type: string
+        default: ''
+  repository_dispatch:
+    types: [deploy-frontend-multi-namespace]
+
+jobs:
+  setup-namespaces:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event_name == 'workflow_dispatch' && (inputs.environment == 'prod' && 'prod' || 'dev') || github.event_name == 'repository_dispatch' && (github.event.client_payload.environment == 'prod' && 'prod' || 'dev') || (github.ref_name == 'main' && 'prod' || 'dev') }}
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.client_payload.ref || github.ref }}
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Install GKE Auth Plugin
+        run: |
+          gcloud components install gke-gcloud-auth-plugin --quiet
+
+      - name: Get GKE Credentials
+        run: |
+          gcloud container clusters get-credentials tripico-cluster \
+            --region europe-west1 \
+            --project ${{ vars.PROJECT_ID }}
+
+      - name: Create Namespaces
+        run: |
+          echo "Creating namespaces for frontend..."
+          kubectl create namespace freemium --dry-run=client -o yaml | kubectl apply -f -
+
+          echo "Waiting for namespaces to be ready..."
+          kubectl wait --for=jsonpath='{.status.phase}'=Active namespace/freemium --timeout=60s || true
+
+          echo "Namespaces created successfully"
+          echo "Note: standard-X namespaces are created during deployment per tenant"
+
+  build-and-push:
+    runs-on: ubuntu-latest
+    needs: setup-namespaces
+    environment: ${{ github.event_name == 'workflow_dispatch' && (inputs.environment == 'prod' && 'prod' || 'dev') || github.event_name == 'repository_dispatch' && (github.event.client_payload.environment == 'prod' && 'prod' || 'dev') || (github.ref_name == 'main' && 'prod' || 'dev') }}
+    env:
+      PROJECT_ID: ${{ vars.PROJECT_ID }}
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+
+    strategy:
+      matrix:
+        tier:
+          - name: freemium
+            apiGatewayUrl: "https://api-freemium.tripico.fun"
+            features:
+              weather: "true"
+              recommendations: "true"
+              travelWarnings: "true"
+          - name: standard
+            apiGatewayUrl: "https://api-standard.tripico.fun"
+            features:
+              weather: "true"
+              recommendations: "true"
+              travelWarnings: "true"
+          - name: enterprise
+            apiGatewayUrl: "https://api-enterprise.tripico.fun"
+            features:
+              weather: "true"
+              recommendations: "true"
+              travelWarnings: "true"
+
+    outputs:
+      freemium_image: ${{ steps.export_freemium_image.outputs.image }}
+      standard_image: ${{ steps.export_standard_image.outputs.image }}
+      enterprise_image: ${{ steps.export_enterprise_image.outputs.image }}
+      app_version: ${{ steps.export_app_version.outputs.app_version }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.client_payload.ref || github.ref }}
+
+      # Login to GitHub Container Registry
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Get app version from Chart.yaml
+      - name: Get app version
+        id: get_version
+        run: |
+          VERSION=$(grep '^appVersion:' cad-frontend-chart/Chart.yaml | awk '{print $2}' | tr -d '"')
+          echo "app_version=$VERSION" >> $GITHUB_OUTPUT
+
+      # Build and push to both registries with tier-specific API Gateway URL
+      # NOTE: Tenant ID is NOT baked in at build time - it's injected at runtime via Helm
+      - name: Build and push ${{ matrix.tier.name }} frontend
+        if: |
+          github.event_name == 'push' ||
+          inputs.tier == 'all' ||
+          inputs.tier == matrix.tier.name ||
+          github.event.client_payload.tier == 'all' ||
+          github.event.client_payload.tier == matrix.tier.name
+        env:
+          # Priority: 1. webhook payload, 2. workflow_dispatch input, 3. matrix default
+          API_GATEWAY_URL: ${{ github.event.client_payload.apiGatewayUrl || inputs.api_gateway_url || matrix.tier.apiGatewayUrl }}
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          build-args: |
+            VITE_API_BASE_URL=${{ env.API_GATEWAY_URL }}
+            VITE_API_WEATHER_BASE_URL=${{ env.API_GATEWAY_URL }}
+            VITE_API_TRAVEL_WARNINGS_BASE_URL=${{ env.API_GATEWAY_URL }}
+            VITE_API_RECOMMENDATIONS_BASE_URL=${{ env.API_GATEWAY_URL }}
+            VITE_API_COMMENTS_LIKES_BASE_URL=${{ env.API_GATEWAY_URL }}
+            VITE_FIREBASE_API_KEY=${{ vars.VITE_FIREBASE_API_KEY }}
+            VITE_FIREBASE_AUTH_DOMAIN=${{ vars.VITE_FIREBASE_AUTH_DOMAIN }}
+            VITE_FIREBASE_PROJECT_ID=${{ vars.VITE_FIREBASE_PROJECT_ID }}
+            VITE_FEATURE_WEATHER=${{ github.event.client_payload.features.weather || matrix.tier.features.weather }}
+            VITE_FEATURE_RECOMMENDATIONS=${{ github.event.client_payload.features.recommendations || matrix.tier.features.recommendations }}
+            VITE_FEATURE_TRAVEL_WARNINGS=${{ github.event.client_payload.features.travelWarnings || matrix.tier.features.travelWarnings }}
+          tags: |
+            ghcr.io/${{ github.repository }}/frontend-${{ matrix.tier.name }}:latest
+            ghcr.io/${{ github.repository }}/frontend-${{ matrix.tier.name }}:${{ steps.get_version.outputs.app_version }}
+
+      - name: Export freemium image reference
+        if: |
+          matrix.tier.name == 'freemium' && (
+            github.event_name == 'push' ||
+            inputs.tier == 'all' ||
+            inputs.tier == 'freemium' ||
+            github.event.client_payload.tier == 'all' ||
+            github.event.client_payload.tier == 'freemium'
+          )
+        id: export_freemium_image
+        run: echo "image=ghcr.io/${{ github.repository }}/frontend-freemium:${{ steps.get_version.outputs.app_version }}" >> "$GITHUB_OUTPUT"
+
+      - name: Export standard image reference
+        if: |
+          matrix.tier.name == 'standard' && (
+            github.event_name == 'push' ||
+            inputs.tier == 'all' ||
+            inputs.tier == 'standard' ||
+            github.event.client_payload.tier == 'all' ||
+            github.event.client_payload.tier == 'standard'
+          )
+        id: export_standard_image
+        run: echo "image=ghcr.io/${{ github.repository }}/frontend-standard:${{ steps.get_version.outputs.app_version }}" >> "$GITHUB_OUTPUT"
+
+      - name: Export enterprise image reference
+        if: |
+          matrix.tier.name == 'enterprise' && (
+            github.event_name == 'push' ||
+            inputs.tier == 'all' ||
+            inputs.tier == 'enterprise' ||
+            github.event.client_payload.tier == 'all' ||
+            github.event.client_payload.tier == 'enterprise'
+          )
+        id: export_enterprise_image
+        run: echo "image=ghcr.io/${{ github.repository }}/frontend-enterprise:${{ steps.get_version.outputs.app_version }}" >> "$GITHUB_OUTPUT"
+
+      - name: Export app version
+        id: export_app_version
+        run: echo "app_version=${{ steps.get_version.outputs.app_version }}" >> "$GITHUB_OUTPUT"
+
+  deploy-freemium:
+    needs: build-and-push
+    if: ${{ github.event_name == 'push' || github.event.client_payload.tier == 'all' || github.event.client_payload.tier == 'freemium' || inputs.tier == 'all' || inputs.tier == 'freemium' }}
+    runs-on: ubuntu-latest
+    environment: ${{ github.event_name == 'workflow_dispatch' && (inputs.environment == 'prod' && 'prod' || 'dev') || github.event_name == 'repository_dispatch' && (github.event.client_payload.environment == 'prod' && 'prod' || 'dev') || (github.ref_name == 'main' && 'prod' || 'dev') }}
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.client_payload.ref || github.ref }}
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Install GKE Auth Plugin
+        run: |
+          gcloud components install gke-gcloud-auth-plugin --quiet
+
+      - name: Get GKE Credentials
+        run: |
+          gcloud container clusters get-credentials tripico-cluster \
+            --region europe-west1 \
+            --project ${{ vars.PROJECT_ID }}
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: 'latest'
+
+      - name: Deploy Frontend to freemium namespace
+        env:
+          DEPLOY_ENV: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || github.event.client_payload.environment || 'dev' }}
+          API_GATEWAY_URL: ${{ github.event.client_payload.apiGatewayUrl || inputs.api_gateway_url }}
+        run: |
+          VALUES_FILE=cad-frontend-chart/values-freemium-dev.yaml
+          if [ "$DEPLOY_ENV" = "prod" ]; then
+            VALUES_FILE=cad-frontend-chart/values-freemium-prod.yaml
+          fi
+
+          echo "Deploying freemium frontend with values file: $VALUES_FILE"
+          echo "API Gateway URL: ${API_GATEWAY_URL}"
+
+          # Validate API Gateway URL is provided
+          if [ -z "$API_GATEWAY_URL" ]; then
+            echo "ERROR: API Gateway URL is required for freemium tier deployments"
+            echo "Please provide it via webhook payload (apiGatewayUrl) or workflow_dispatch input (api_gateway_url)"
+            exit 1
+          fi
+
+          helm upgrade --install cad-frontend-freemium ./cad-frontend-chart \
+            --namespace freemium \
+            --create-namespace \
+            --values $VALUES_FILE \
+            --set cadFrontend.image=${{ needs.build-and-push.outputs.freemium_image }} \
+            --set apiGateway.baseUrl=$API_GATEWAY_URL \
+            --wait --timeout 5m
+
+          # Force rollout to pull new image
+          echo "Forcing rollout restart to pull latest image..."
+          kubectl rollout restart deployment/cad-frontend-freemium -n freemium
+          kubectl rollout status deployment/cad-frontend-freemium -n freemium --timeout=5m
+
+  deploy-standard:
+    needs: build-and-push
+    if: ${{ github.event_name == 'push' || github.event.client_payload.tier == 'all' || github.event.client_payload.tier == 'standard' || inputs.tier == 'all' || inputs.tier == 'standard' }}
+    runs-on: ubuntu-latest
+    environment: ${{ github.event_name == 'workflow_dispatch' && (inputs.environment == 'prod' && 'prod' || 'dev') || github.event_name == 'repository_dispatch' && (github.event.client_payload.environment == 'prod' && 'prod' || 'dev') || (github.ref_name == 'main' && 'prod' || 'dev') }}
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.client_payload.ref || github.ref }}
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Install GKE Auth Plugin
+        run: |
+          gcloud components install gke-gcloud-auth-plugin --quiet
+
+      - name: Get GKE Credentials
+        run: |
+          gcloud container clusters get-credentials tripico-cluster \
+            --region europe-west1 \
+            --project ${{ vars.PROJECT_ID }}
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: 'latest'
+
+      - name: Clean up old standard namespace resources
+        env:
+          TENANT_NUMBER: ${{ github.event_name == 'workflow_dispatch' && inputs.tenant_number || github.event.client_payload.tenant_number || '1' }}
+        run: |
+          # Clean up old resources for this specific tenant
+          NAMESPACE="standard-${TENANT_NUMBER}"
+          
+          echo "Cleaning up old resources in namespace: $NAMESPACE"
+          kubectl delete ingress --all -n $NAMESPACE --ignore-not-found=true
+          kubectl delete deployment --all -n $NAMESPACE --ignore-not-found=true
+          kubectl delete service --all -n $NAMESPACE --ignore-not-found=true
+          
+          # Also clean up legacy 'standard' namespace if tenant 1 is being deployed
+          if [ "$TENANT_NUMBER" = "1" ]; then
+            echo "Also cleaning up legacy 'standard' namespace..."
+            kubectl delete namespace standard --ignore-not-found=true --wait=false || true
+          fi
+
+      - name: Deploy Frontend to standard namespace
+        env:
+          DEPLOY_ENV: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || github.event.client_payload.environment || 'dev' }}
+          TENANT_NUMBER: ${{ github.event_name == 'workflow_dispatch' && inputs.tenant_number || github.event.client_payload.tenant_number || '1' }}
+          API_GATEWAY_URL: ${{ github.event.client_payload.apiGatewayUrl || inputs.api_gateway_url }}
+          TENANT_ID: ${{ github.event.client_payload.tenant_id || inputs.tenant_id }}
+        run: |
+          VALUES_FILE=cad-frontend-chart/values-standard-dev.yaml
+          DOMAIN_BASE="frontend-standard.dev.tripico.fun"
+
+          if [ "$DEPLOY_ENV" = "prod" ]; then
+            VALUES_FILE=cad-frontend-chart/values-standard-prod.yaml
+            DOMAIN_BASE="frontend-standard.tripico.fun"
+          fi
+
+          # Build namespace with tenant number: standard-1, standard-2, etc.
+          NAMESPACE="standard-${TENANT_NUMBER}"
+
+          # Update domain to include tenant number: frontend-standard-1.tripico.fun
+          DOMAIN="${DOMAIN_BASE/standard/standard-${TENANT_NUMBER}}"
+          TLS_SECRET="frontend-standard-${TENANT_NUMBER}-tls"
+
+          echo "Deploying standard frontend to namespace: $NAMESPACE"
+          echo "Using values file: $VALUES_FILE"
+          echo "Domain: $DOMAIN"
+          echo "API Gateway URL: ${API_GATEWAY_URL}"
+          echo "Tenant ID: ${TENANT_ID}"
+          echo "Tenant number: $TENANT_NUMBER"
+
+          # Validate API Gateway URL is provided for standard tier
+          if [ -z "$API_GATEWAY_URL" ]; then
+            echo "ERROR: API Gateway URL is required for standard tier deployments"
+            echo "Please provide it via webhook payload (apiGatewayUrl) or workflow_dispatch input (api_gateway_url)"
+            exit 1
+          fi
+
+          # Validate Tenant ID is provided for standard tier
+          if [ -z "$TENANT_ID" ]; then
+            echo "WARNING: Tenant ID not provided - users will not be isolated"
+            echo "Get it from Terraform output: terraform output identity_platform_tenant_id"
+          fi
+
+          # Create namespace if it doesn't exist
+          kubectl create namespace $NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
+
+          helm upgrade --install cad-frontend-standard-${TENANT_NUMBER} ./cad-frontend-chart \
+            --namespace $NAMESPACE \
+            --create-namespace \
+            --values $VALUES_FILE \
+            --set cadFrontend.image=${{ needs.build-and-push.outputs.standard_image }} \
+            --set cadFrontend.name=cad-frontend-standard-${TENANT_NUMBER} \
+            --set ingress.host=$DOMAIN \
+            --set ingress.secretName=$TLS_SECRET \
+            --set apiGateway.baseUrl=$API_GATEWAY_URL \
+            --set identityPlatform.tenantId=$TENANT_ID \
+            --set namespaceOverride=$NAMESPACE \
+            --wait --timeout 5m
+
+          # Force rollout to pull new image
+          echo "Forcing rollout restart to pull latest image..."
+          kubectl rollout restart deployment/cad-frontend-standard-${TENANT_NUMBER} -n $NAMESPACE
+          kubectl rollout status deployment/cad-frontend-standard-${TENANT_NUMBER} -n $NAMESPACE --timeout=5m
+
+  deploy-enterprise:
+    needs: build-and-push
+    if: |
+      (github.event_name == 'workflow_dispatch' && (inputs.tier == 'all' || inputs.tier == 'enterprise')) ||
+      (github.event_name == 'repository_dispatch' && (github.event.client_payload.tier == 'all' || github.event.client_payload.tier == 'enterprise'))
+    runs-on: ubuntu-latest
+    environment: ${{ github.event_name == 'workflow_dispatch' && (inputs.environment == 'prod' && 'prod' || 'dev') || github.event_name == 'repository_dispatch' && (github.event.client_payload.environment == 'prod' && 'prod' || 'dev') || (github.ref_name == 'main' && 'prod' || 'dev') }}
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.client_payload.ref || github.ref }}
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Install GKE Auth Plugin
+        run: |
+          gcloud components install gke-gcloud-auth-plugin --quiet
+
+      - name: Get GKE Credentials
+        env:
+          ENTERPRISE_NAME: ${{ github.event_name == 'workflow_dispatch' && inputs.enterprise_name || github.event.client_payload.enterprise_name || '' }}
+        run: |
+          gcloud container clusters get-credentials tripico-${ENTERPRISE_NAME}-cluster \
+            --region europe-west1 \
+            --project ${{ vars.PROJECT_ID }}
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: '3.13.0'
+
+      - name: Clean up old enterprise namespace resources
+        env:
+          ENTERPRISE_NAME: ${{ github.event_name == 'workflow_dispatch' && inputs.enterprise_name || github.event.client_payload.enterprise_name || '' }}
+        run: |
+          # Validate enterprise name is provided
+          if [ -z "$ENTERPRISE_NAME" ]; then
+            echo "ERROR: Enterprise name is required for enterprise tier deployments"
+            echo "Please provide it via webhook payload (enterprise_name) or workflow_dispatch input (enterprise_name)"
+            exit 1
+          fi
+          
+          # Clean up old resources for this specific enterprise tenant
+          NAMESPACE="enterprise-${ENTERPRISE_NAME}"
+          
+          echo "Cleaning up old resources in namespace: $NAMESPACE"
+          kubectl delete ingress --all -n $NAMESPACE --ignore-not-found=true
+          kubectl delete deployment --all -n $NAMESPACE --ignore-not-found=true
+          kubectl delete service --all -n $NAMESPACE --ignore-not-found=true
+
+      - name: Deploy Frontend to enterprise namespace
+        env:
+          DEPLOY_ENV: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || github.event.client_payload.environment || 'dev' }}
+          ENTERPRISE_NAME: ${{ github.event_name == 'workflow_dispatch' && inputs.enterprise_name || github.event.client_payload.enterprise_name || '' }}
+          API_GATEWAY_URL: ${{ github.event.client_payload.apiGatewayUrl || inputs.api_gateway_url }}
+          TENANT_ID: ${{ github.event.client_payload.tenant_id || inputs.tenant_id }}
+        run: |
+          VALUES_FILE=cad-frontend-chart/values-enterprise-dev.yaml
+
+          if [ "$DEPLOY_ENV" = "prod" ]; then
+            VALUES_FILE=cad-frontend-chart/values-enterprise-prod.yaml
+            DOMAIN="frontend.${ENTERPRISE_NAME}.tripico.fun"
+          else
+            DOMAIN="frontend.${ENTERPRISE_NAME}.dev.tripico.fun"
+          fi
+
+          # Build namespace with enterprise name: enterprise-acme, enterprise-contoso, etc.
+          NAMESPACE="enterprise-${ENTERPRISE_NAME}"
+          TLS_SECRET="frontend-${ENTERPRISE_NAME}-tls"
+
+          echo "Deploying enterprise frontend to namespace: $NAMESPACE"
+          echo "Using values file: $VALUES_FILE"
+          echo "Domain: $DOMAIN"
+          echo "API Gateway URL: ${API_GATEWAY_URL}"
+          echo "Tenant ID: ${TENANT_ID}"
+          echo "Enterprise name: $ENTERPRISE_NAME"
+
+          # Validate API Gateway URL is provided for enterprise tier
+          if [ -z "$API_GATEWAY_URL" ]; then
+            echo "ERROR: API Gateway URL is required for enterprise tier deployments"
+            echo "Please provide it via webhook payload (apiGatewayUrl) or workflow_dispatch input (api_gateway_url)"
+            exit 1
+          fi
+
+          # Validate Tenant ID is provided for enterprise tier
+          if [ -z "$TENANT_ID" ]; then
+            echo "WARNING: Tenant ID not provided - users will not be isolated"
+            echo "Get it from Terraform output: terraform output identity_platform_tenant_id"
+          fi
+
+          # Create namespace if it doesn't exist
+          kubectl create namespace $NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
+
+          helm upgrade --install cad-frontend-${ENTERPRISE_NAME} ./cad-frontend-chart \
+            --namespace $NAMESPACE \
+            --create-namespace \
+            --values $VALUES_FILE \
+            --set cadFrontend.image=${{ needs.build-and-push.outputs.enterprise_image }} \
+            --set cadFrontend.name=cad-frontend-${ENTERPRISE_NAME} \
+            --set ingress.host=$DOMAIN \
+            --set ingress.secretName=$TLS_SECRET \
+            --set apiGateway.baseUrl=$API_GATEWAY_URL \
+            --set identityPlatform.tenantId=$TENANT_ID \
+            --set namespaceOverride=$NAMESPACE \
+            --wait --timeout 5m
+
+          # Force rollout to pull new image
+          echo "Forcing rollout restart to pull latest image..."
+          kubectl rollout restart deployment/cad-frontend-${ENTERPRISE_NAME} -n $NAMESPACE
+          kubectl rollout status deployment/cad-frontend-${ENTERPRISE_NAME} -n $NAMESPACE --timeout=5m
+
+  verify-deployment:
+    needs: [deploy-freemium, deploy-standard, deploy-enterprise]
+    if: |
+      always() &&
+      (needs.deploy-freemium.result == 'success' || needs.deploy-freemium.result == 'skipped') &&
+      (needs.deploy-standard.result == 'success' || needs.deploy-standard.result == 'skipped') &&
+      (needs.deploy-enterprise.result == 'success' || needs.deploy-enterprise.result == 'skipped')
+    runs-on: ubuntu-latest
+    environment: ${{ github.event_name == 'workflow_dispatch' && (inputs.environment == 'prod' && 'prod' || 'dev') || github.event_name == 'repository_dispatch' && (github.event.client_payload.environment == 'prod' && 'prod' || 'dev') || (github.ref_name == 'main' && 'prod' || 'dev') }}
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.client_payload.ref || github.ref }}
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Install GKE Auth Plugin
+        run: |
+          gcloud components install gke-gcloud-auth-plugin --quiet
+
+      - name: Get GKE Credentials
+        run: |
+          gcloud container clusters get-credentials tripico-cluster \
+            --region europe-west1 \
+            --project ${{ vars.PROJECT_ID }}
+
+      - name: Verify Deployments
+        run: |
+          echo "========== FREEMIUM NAMESPACE =========="
+          kubectl get all -n freemium
+          echo ""
+          echo "========== STANDARD NAMESPACES =========="
+          for ns in $(kubectl get namespaces -o name | grep "namespace/standard-" | cut -d/ -f2); do
+            echo "--- Namespace: $ns ---"
+            kubectl get all -n $ns
+            echo ""
+          done
+          echo ""
+          echo "========== ENTERPRISE NAMESPACES =========="
+          for ns in $(kubectl get namespaces -o name | grep "namespace/enterprise-" | cut -d/ -f2); do
+            echo "--- Namespace: $ns ---"
+            kubectl get all -n $ns
+            echo ""
+          done
+          echo ""
+          echo "========== INGRESSES =========="
+          kubectl get ingress --all-namespaces
+          echo ""
+          echo "========== POD DETAILS =========="
+          kubectl get pods -n freemium -o wide
+          echo ""
+          for ns in $(kubectl get namespaces -o name | grep "namespace/standard-" | cut -d/ -f2); do
+            echo "--- Pods in $ns ---"
+            kubectl get pods -n $ns -o wide
+            echo ""
+          done
+          echo ""
+          for ns in $(kubectl get namespaces -o name | grep "namespace/enterprise-" | cut -d/ -f2); do
+            echo "--- Pods in $ns ---"
+            kubectl get pods -n $ns -o wide
+            echo ""
+          done

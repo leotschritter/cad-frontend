@@ -1,0 +1,68 @@
+# Standard Tier - Production Environment
+namespaceOverride: standard
+
+# GCP Project Configuration
+projectId: "graphite-plane-474510-s9"
+
+# Identity Platform Configuration
+# Standard tier uses tenant-specific tenant ID for user isolation
+identityPlatform:
+  tenantId: ""  # Set via pipeline: --set identityPlatform.tenantId=std-standard-1
+
+# API Gateway Configuration
+# Note: This will be overridden by pipeline with tenant-specific URL
+apiGateway:
+  baseUrl: https://api-standard.tripico.fun
+
+# Use production ingress with TLS
+ingress:
+  name: cad-frontend-standard-ingress
+  host: frontend-standard.tripico.fun
+  sslRedirect: "true"
+  forceSslRedirect: "true"
+  issuerName: letsencrypt-prod
+  secretName: frontend-standard-tls
+
+# Production resources for standard tier
+cadFrontend:
+  name: cad-frontend-standard
+  port: 80
+  image: "ghcr.io/leotschritter/cad-frontend:latest"
+  replicas: 3  # More replicas for standard tier
+
+  # Feature flags for standard tier - all features enabled
+  features:
+    weather: true
+    recommendations: true  # Enabled for standard
+    travelWarnings: true
+
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+
+  probes:
+    startup:
+      path: /
+      initialDelaySeconds: 5
+      periodSeconds: 5
+      failureThreshold: 10
+      timeoutSeconds: 3
+    readiness:
+      path: /
+      periodSeconds: 10
+      initialDelaySeconds: 0
+      failureThreshold: 3
+      timeoutSeconds: 5
+    liveness:
+      path: /
+      periodSeconds: 30
+      initialDelaySeconds: 10
+      failureThreshold: 3
+      timeoutSeconds: 3
+
+podAnnotations:
+  tier: standard

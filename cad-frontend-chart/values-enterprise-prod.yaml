@@ -1,0 +1,71 @@
+# Enterprise Tier - Production Environment
+# Full isolation with dedicated GKE cluster per tenant
+namespaceOverride: enterprise
+
+# GCP Project Configuration
+projectId: "graphite-plane-474510-s9"
+
+# Identity Platform Configuration
+# Enterprise tier uses tenant-specific tenant ID for complete user isolation
+identityPlatform:
+  tenantId: ""  # Set via pipeline: --set identityPlatform.tenantId=ent-acme-corp
+
+# API Gateway Configuration
+# Note: This will be overridden by pipeline with tenant-specific URL
+apiGateway:
+  baseUrl: https://api-enterprise.tripico.fun
+
+# Use production ingress with custom domain and TLS
+ingress:
+  name: cad-frontend-enterprise-ingress
+  host: frontend-enterprise.tripico.fun  # Will be overridden with custom name
+  sslRedirect: "true"
+  forceSslRedirect: "true"
+  issuerName: letsencrypt-prod
+  secretName: frontend-enterprise-tls
+
+# Enterprise tier with maximum resources and high availability
+cadFrontend:
+  name: cad-frontend-enterprise
+  port: 80
+  image: "ghcr.io/leotschritter/cad-frontend:latest"
+  replicas: 5  # High availability with multiple replicas
+
+  # Feature flags for enterprise tier - all features enabled
+  features:
+    weather: true
+    recommendations: true
+    travelWarnings: true
+
+  # Enterprise tier gets maximum resources for production
+  resources:
+    requests:
+      memory: "1Gi"
+      cpu: "500m"
+    limits:
+      memory: "2Gi"
+      cpu: "2000m"
+
+  probes:
+    startup:
+      path: /
+      initialDelaySeconds: 5
+      periodSeconds: 5
+      failureThreshold: 10
+      timeoutSeconds: 3
+    readiness:
+      path: /
+      periodSeconds: 10
+      initialDelaySeconds: 0
+      failureThreshold: 3
+      timeoutSeconds: 5
+    liveness:
+      path: /
+      periodSeconds: 30
+      initialDelaySeconds: 10
+      failureThreshold: 3
+      timeoutSeconds: 3
+
+podAnnotations:
+  tier: enterprise
+

@@ -3,6 +3,7 @@ import { RouterView } from 'vue-router'
 import { defineComponent } from "vue";
 import { useAuthStore } from "@/stores/auth.ts";
 import AppFooter from "@/components/AppFooter.vue";
+import { isRecommendationsEnabled } from '@/config/featureFlags';
 
 export default defineComponent({
   name: 'App',
@@ -30,6 +31,9 @@ export default defineComponent({
     },
     isLoggedIn(): boolean {
       return this.authStore?.isAuthenticated ?? false;
+    },
+    recommendationsEnabled(): boolean {
+      return isRecommendationsEnabled();
     }
   },
   methods: {
@@ -67,8 +71,9 @@ export default defineComponent({
 
       <v-list density="compact" nav>
         <v-list-item prepend-icon="mdi-routes" title="My Itineraries" to="/" />
-        <v-list-item prepend-icon="mdi-rss" title="Feed" to="/feed" />
+        <v-list-item v-if="recommendationsEnabled" prepend-icon="mdi-rss" title="Feed" to="/feed" />
         <v-list-item prepend-icon="mdi-magnify" title="Search Itineraries" to="/search" />
+        <v-list-item prepend-icon="mdi-tag-multiple" title="Pricing" to="/pricing" />
       </v-list>
     </v-navigation-drawer>
 
