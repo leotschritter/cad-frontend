@@ -166,6 +166,12 @@ jobs:
       # Build and push to both registries with tier-specific API Gateway URL
       # NOTE: Tenant ID is NOT baked in at build time - it's injected at runtime via Helm
       - name: Build and push ${{ matrix.tier.name }} frontend
+        if: |
+          github.event_name == 'push' ||
+          inputs.tier == 'all' ||
+          inputs.tier == matrix.tier.name ||
+          github.event.client_payload.tier == 'all' ||
+          github.event.client_payload.tier == matrix.tier.name
         env:
           # Priority: 1. webhook payload, 2. workflow_dispatch input, 3. matrix default
           API_GATEWAY_URL: ${{ github.event.client_payload.apiGatewayUrl || inputs.api_gateway_url || matrix.tier.apiGatewayUrl }}
@@ -193,17 +199,38 @@ jobs:
             europe-west1-docker.pkg.dev/${{ vars.PROJECT_ID }}/docker-repo/travel-frontend-${{ matrix.tier.name }}:${{ steps.get_version.outputs.app_version }}
 
       - name: Export freemium image reference
-        if: matrix.tier.name == 'freemium'
+        if: |
+          matrix.tier.name == 'freemium' && (
+            github.event_name == 'push' ||
+            inputs.tier == 'all' ||
+            inputs.tier == 'freemium' ||
+            github.event.client_payload.tier == 'all' ||
+            github.event.client_payload.tier == 'freemium'
+          )
         id: export_freemium_image
         run: echo "image=europe-west1-docker.pkg.dev/${PROJECT_ID}/docker-repo/travel-frontend-freemium:${{ steps.get_version.outputs.app_version }}" >> "$GITHUB_OUTPUT"
 
       - name: Export standard image reference
-        if: matrix.tier.name == 'standard'
+        if: |
+          matrix.tier.name == 'standard' && (
+            github.event_name == 'push' ||
+            inputs.tier == 'all' ||
+            inputs.tier == 'standard' ||
+            github.event.client_payload.tier == 'all' ||
+            github.event.client_payload.tier == 'standard'
+          )
         id: export_standard_image
         run: echo "image=europe-west1-docker.pkg.dev/${PROJECT_ID}/docker-repo/travel-frontend-standard:${{ steps.get_version.outputs.app_version }}" >> "$GITHUB_OUTPUT"
 
       - name: Export enterprise image reference
-        if: matrix.tier.name == 'enterprise'
+        if: |
+          matrix.tier.name == 'enterprise' && (
+            github.event_name == 'push' ||
+            inputs.tier == 'all' ||
+            inputs.tier == 'enterprise' ||
+            github.event.client_payload.tier == 'all' ||
+            github.event.client_payload.tier == 'enterprise'
+          )
         id: export_enterprise_image
         run: echo "image=europe-west1-docker.pkg.dev/${PROJECT_ID}/docker-repo/travel-frontend-enterprise:${{ steps.get_version.outputs.app_version }}" >> "$GITHUB_OUTPUT"
 
