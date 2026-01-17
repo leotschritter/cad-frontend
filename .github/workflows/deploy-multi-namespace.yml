@@ -144,18 +144,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Login to Google Artifact Registry
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
-
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-
-      - name: Configure Docker for GCP
-        run: gcloud auth configure-docker europe-west1-docker.pkg.dev
-
       # Get app version from Chart.yaml
       - name: Get app version
         id: get_version
@@ -195,8 +183,6 @@ jobs:
           tags: |
             ghcr.io/${{ github.repository }}/frontend-${{ matrix.tier.name }}:latest
             ghcr.io/${{ github.repository }}/frontend-${{ matrix.tier.name }}:${{ steps.get_version.outputs.app_version }}
-            europe-west1-docker.pkg.dev/${{ vars.PROJECT_ID }}/docker-repo/travel-frontend-${{ matrix.tier.name }}:latest
-            europe-west1-docker.pkg.dev/${{ vars.PROJECT_ID }}/docker-repo/travel-frontend-${{ matrix.tier.name }}:${{ steps.get_version.outputs.app_version }}
 
       - name: Export freemium image reference
         if: |
@@ -208,7 +194,7 @@ jobs:
             github.event.client_payload.tier == 'freemium'
           )
         id: export_freemium_image
-        run: echo "image=europe-west1-docker.pkg.dev/${PROJECT_ID}/docker-repo/travel-frontend-freemium:${{ steps.get_version.outputs.app_version }}" >> "$GITHUB_OUTPUT"
+        run: echo "image=ghcr.io/${{ github.repository }}/frontend-freemium:${{ steps.get_version.outputs.app_version }}" >> "$GITHUB_OUTPUT"
 
       - name: Export standard image reference
         if: |
@@ -220,7 +206,7 @@ jobs:
             github.event.client_payload.tier == 'standard'
           )
         id: export_standard_image
-        run: echo "image=europe-west1-docker.pkg.dev/${PROJECT_ID}/docker-repo/travel-frontend-standard:${{ steps.get_version.outputs.app_version }}" >> "$GITHUB_OUTPUT"
+        run: echo "image=ghcr.io/${{ github.repository }}/frontend-standard:${{ steps.get_version.outputs.app_version }}" >> "$GITHUB_OUTPUT"
 
       - name: Export enterprise image reference
         if: |
@@ -232,7 +218,7 @@ jobs:
             github.event.client_payload.tier == 'enterprise'
           )
         id: export_enterprise_image
-        run: echo "image=europe-west1-docker.pkg.dev/${PROJECT_ID}/docker-repo/travel-frontend-enterprise:${{ steps.get_version.outputs.app_version }}" >> "$GITHUB_OUTPUT"
+        run: echo "image=ghcr.io/${{ github.repository }}/frontend-enterprise:${{ steps.get_version.outputs.app_version }}" >> "$GITHUB_OUTPUT"
 
       - name: Export app version
         id: export_app_version
