@@ -30,7 +30,7 @@ cadFrontend:
   name: cad-frontend-enterprise
   port: 80
   image: "ghcr.io/leotschritter/cad-frontend:latest"
-  replicas: 2  # Development still gets multiple replicas for testing
+  replicas: 1
 
   # Feature flags for enterprise tier - all features enabled
   features:

@@ -27,7 +27,7 @@ cadFrontend:
   name: cad-frontend-freemium
   port: 80
   image: "ghcr.io/leotschritter/cad-frontend:latest"
-  replicas: 2
+  replicas: 1
 
   # Feature flags for freemium tier - all disabled
   features:

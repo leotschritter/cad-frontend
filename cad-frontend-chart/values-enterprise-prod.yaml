@@ -29,7 +29,7 @@ cadFrontend:
   name: cad-frontend-enterprise
   port: 80
   image: "ghcr.io/leotschritter/cad-frontend:latest"
-  replicas: 5  # High availability with multiple replicas
+  replicas: 2
 
   # Feature flags for enterprise tier - all features enabled
   features:

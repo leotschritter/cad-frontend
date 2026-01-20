@@ -28,7 +28,7 @@ cadFrontend:
   name: cad-frontend-standard
   port: 80
   image: "ghcr.io/leotschritter/cad-frontend:latest"
-  replicas: 3  # More replicas for standard tier
+  replicas: 1
 
   # Feature flags for standard tier - all features enabled
   features:
