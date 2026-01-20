@@ -130,14 +130,32 @@ const tiers = computed<PricingTier[]>(() => [
 ])
 
 const enterpriseDialog = ref(false)
+const standardDialog = ref(false)
 const enterpriseForm = ref({
-  companyName: '',
-  email: ''
+  enterpriseName: '',
+  ownerEmail: '',
+  ownerPassword: ''
+})
+const standardForm = ref({
+  ownerEmail: '',
+  ownerPassword: ''
 })
 const loading = ref(false)
 const snackbar = ref(false)
 const snackbarMessage = ref('')
 const snackbarColor = ref('success')
+
+// Tenant API base URL
+const tenantApiBaseUrl = 'https://tenant.tripico.fun'
+
+// Generate UUID for standard tenant name
+const generateUUID = () => {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = Math.random() * 16 | 0
+    const v = c === 'x' ? r : (r & 0x3 | 0x8)
+    return v.toString(16)
+  })
+}
 
 const handleTierSelect = async (tier: PricingTier) => {
   // If already on this tier, do nothing
@@ -148,113 +166,72 @@ const handleTierSelect = async (tier: PricingTier) => {
     return
   }
 
-  // Enterprise can be requested without login
+  // Standard and Enterprise can be requested without login (they have their own registration form)
+  if (tier.name === 'Standard') {
+    standardDialog.value = true
+    return
+  }
+
   if (tier.name === 'Enterprise') {
     enterpriseDialog.value = true
     return
   }
 
+  // Freemium requires login
   if (!authStore.isAuthenticated) {
-    // Save intended tier and redirect to login
     sessionStorage.setItem('intendedTier', tier.name.toLowerCase())
     router.push('/login')
     return
   }
 
-  // Ask for tenant number for Standard tier
-  if (tier.name === 'Standard') {
-    const nextTenantNumber = await promptForTenantNumber()
-    if (!nextTenantNumber) return
+  // Freemium doesn't need tenant creation - redirect to freemium domain
+  const domain = 'frontend-freemium.tripico.fun'
+  snackbarMessage.value = `Redirecting to ${tier.name} plan at ${domain}...`
+  snackbarColor.value = 'info'
+  snackbar.value = true
 
-    // Mock provisioning for Standard
-    loading.value = true
-    try {
-      await mockProvisionTenant(tier, nextTenantNumber)
-      const domain = `frontend-standard-${nextTenantNumber}.tripico.fun`
-      snackbarMessage.value = `Successfully subscribed to ${tier.name} plan! Redirecting to ${domain}...`
-      snackbarColor.value = 'success'
-      snackbar.value = true
+  setTimeout(() => {
+    window.location.href = `https://${domain}`
+  }, 2000)
+}
 
-      // Redirect after 2 seconds
-      setTimeout(() => {
-        window.location.href = `https://${domain}`
-      }, 2000)
-    } catch (error) {
-      snackbarMessage.value = 'Failed to provision your instance. Please try again.'
-      snackbarColor.value = 'error'
-      snackbar.value = true
-    } finally {
-      loading.value = false
-    }
-    return
+// Create tenant via API
+const createTenant = async (payload: {
+  name: string
+  ownerEmail: string
+  ownerPassword: string
+  tier: 'STANDARD' | 'ENTERPRISE'
+  enterpriseName?: string
+}) => {
+  const response = await fetch(`${tenantApiBaseUrl}/api/v1/tenants`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload)
+  })
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}))
+    throw new Error(errorData.message || 'Failed to create tenant')
   }
 
-  // Mock provisioning for Freemium
-  loading.value = true
-  try {
-    await mockProvisionTenant(tier)
-    const domain = 'frontend-freemium.tripico.fun'
-    snackbarMessage.value = `Successfully subscribed to ${tier.name} plan! Redirecting to ${domain}...`
-    snackbarColor.value = 'success'
-    snackbar.value = true
-
-    // Redirect after 2 seconds
-    setTimeout(() => {
-      window.location.href = `https://${domain}`
-    }, 2000)
-  } catch (error) {
-    snackbarMessage.value = 'Failed to provision your instance. Please try again.'
-    snackbarColor.value = 'error'
-    snackbar.value = true
-  } finally {
-    loading.value = false
-  }
+  return response.json()
 }
 
-const tenantNumberDialog = ref(false)
-const selectedTenantNumber = ref('1')
-
-const promptForTenantNumber = (): Promise<string | null> => {
-  return new Promise((resolve) => {
-    tenantNumberDialog.value = true
-    const checkInterval = setInterval(() => {
-      if (!tenantNumberDialog.value) {
-        clearInterval(checkInterval)
-        resolve(selectedTenantNumber.value || null)
-      }
-    }, 100)
-  })
-}
-
-const mockProvisionTenant = async (tier: PricingTier, tenantNum?: string) => {
-  // Mock API call - will be replaced with real provisioning service
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      console.log('Provisioning tenant for tier:', tier.name)
-      console.log('User:', authStore.user?.email)
-      if (tenantNum) {
-        console.log('Tenant Number:', tenantNum)
-        console.log('Domain:', `frontend-standard-${tenantNum}.tripico.fun`)
-      } else {
-        console.log('Domain:', tier.domainPattern)
-      }
-      resolve(true)
-    }, 1500)
-  })
-}
-
-const submitEnterpriseRequest = async () => {
-  if (!enterpriseForm.value.companyName || !enterpriseForm.value.email) {
+// Submit Standard plan request
+const submitStandardRequest = async () => {
+  if (!standardForm.value.ownerEmail || !standardForm.value.ownerPassword) {
     snackbarMessage.value = 'Please fill in all required fields'
     snackbarColor.value = 'error'
     snackbar.value = true
     return
   }
 
-  // Validate company name format (will be used as subdomain)
-  const domainRegex = /^[a-z0-9-]+$/i
-  if (!domainRegex.test(enterpriseForm.value.companyName)) {
-    snackbarMessage.value = 'Company name must contain only letters, numbers, and hyphens'
+  // Validate email format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailRegex.test(standardForm.value.ownerEmail)) {
+    snackbarMessage.value = 'Please enter a valid email address'
     snackbarColor.value = 'error'
     snackbar.value = true
     return
@@ -262,26 +239,26 @@ const submitEnterpriseRequest = async () => {
 
   loading.value = true
   try {
-    await mockEnterpriseRequest()
-    const subdomain = enterpriseForm.value.companyName.toLowerCase()
-    const domain = `frontend.${subdomain}.tripico.fun`
-    snackbarMessage.value = `Successfully subscribed to Enterprise plan! Redirecting to ${domain}...`
+    const tenantName = generateUUID()
+    const response = await createTenant({
+      name: tenantName,
+      ownerEmail: standardForm.value.ownerEmail,
+      ownerPassword: standardForm.value.ownerPassword,
+      tier: 'STANDARD'
+    })
+
+    snackbarMessage.value = response.message || 'Your Standard tenant is being created!'
     snackbarColor.value = 'success'
     snackbar.value = true
-    enterpriseDialog.value = false
+    standardDialog.value = false
 
     // Reset form
-    enterpriseForm.value = {
-      companyName: '',
-      email: ''
+    standardForm.value = {
+      ownerEmail: '',
+      ownerPassword: ''
     }
-
-    // Redirect after 2 seconds
-    setTimeout(() => {
-      window.location.href = `https://${domain}`
-    }, 2000)
-  } catch (error) {
-    snackbarMessage.value = 'Failed to provision your instance. Please try again.'
+  } catch (error: any) {
+    snackbarMessage.value = error.message || 'Failed to create tenant. Please try again.'
     snackbarColor.value = 'error'
     snackbar.value = true
   } finally {
@@ -289,17 +266,62 @@ const submitEnterpriseRequest = async () => {
   }
 }
 
-const mockEnterpriseRequest = async () => {
-  // Mock API call - will be replaced with real provisioning service
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const subdomain = enterpriseForm.value.companyName.toLowerCase()
-      console.log('Provisioning Enterprise tenant for:', enterpriseForm.value.companyName)
-      console.log('User:', enterpriseForm.value.email)
-      console.log('Domain:', `frontend.${subdomain}.tripico.fun`)
-      resolve(true)
-    }, 1500)
-  })
+// Submit Enterprise plan request
+const submitEnterpriseRequest = async () => {
+  if (!enterpriseForm.value.enterpriseName || !enterpriseForm.value.ownerEmail || !enterpriseForm.value.ownerPassword) {
+    snackbarMessage.value = 'Please fill in all required fields'
+    snackbarColor.value = 'error'
+    snackbar.value = true
+    return
+  }
+
+  // Validate enterprise name format (will be used as subdomain)
+  const domainRegex = /^[a-z0-9-]+$/i
+  if (!domainRegex.test(enterpriseForm.value.enterpriseName)) {
+    snackbarMessage.value = 'Enterprise name must contain only letters, numbers, and hyphens'
+    snackbarColor.value = 'error'
+    snackbar.value = true
+    return
+  }
+
+  // Validate email format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailRegex.test(enterpriseForm.value.ownerEmail)) {
+    snackbarMessage.value = 'Please enter a valid email address'
+    snackbarColor.value = 'error'
+    snackbar.value = true
+    return
+  }
+
+  loading.value = true
+  try {
+    const enterpriseName = enterpriseForm.value.enterpriseName.toLowerCase()
+    const response = await createTenant({
+      name: enterpriseName,
+      ownerEmail: enterpriseForm.value.ownerEmail,
+      ownerPassword: enterpriseForm.value.ownerPassword,
+      tier: 'ENTERPRISE',
+      enterpriseName: enterpriseName
+    })
+
+    snackbarMessage.value = response.message || 'Your Enterprise tenant is being created!'
+    snackbarColor.value = 'success'
+    snackbar.value = true
+    enterpriseDialog.value = false
+
+    // Reset form
+    enterpriseForm.value = {
+      enterpriseName: '',
+      ownerEmail: '',
+      ownerPassword: ''
+    }
+  } catch (error: any) {
+    snackbarMessage.value = error.message || 'Failed to create tenant. Please try again.'
+    snackbarColor.value = 'error'
+    snackbar.value = true
+  } finally {
+    loading.value = false
+  }
 }
 </script>
 
@@ -396,104 +418,45 @@ const mockEnterpriseRequest = async () => {
       </v-col>
     </v-row>
 
-    <!-- Tenant Number Selection Dialog -->
+    <!-- Standard Plan Registration Dialog -->
     <v-dialog
-      v-model="tenantNumberDialog"
-      max-width="400"
+      v-model="standardDialog"
+      max-width="500"
       persistent
     >
       <v-card>
         <v-card-title class="d-flex align-center justify-space-between">
-          <span class="text-h5">Select Tenant Number</span>
+          <span class="text-h5">Standard Plan Registration</span>
           <v-btn
             icon="mdi-close"
             variant="text"
-            @click="tenantNumberDialog = false; selectedTenantNumber = '1'"
-          ></v-btn>
-        </v-card-title>
-
-        <v-card-text>
-          <v-text-field
-            v-model="selectedTenantNumber"
-            label="Tenant Number"
-            type="number"
-            variant="outlined"
-            required
-            prepend-inner-icon="mdi-numeric"
-            hint="Choose a unique tenant number (e.g., 1, 2, 3)"
-            persistent-hint
-            min="1"
-            class="mb-3"
-          ></v-text-field>
-
-          <v-alert
-            type="info"
-            variant="tonal"
-            density="compact"
-          >
-            <div class="text-caption">
-              Your instance will be available at: <strong>frontend-standard-{{ selectedTenantNumber }}.tripico.fun</strong>
-            </div>
-          </v-alert>
-        </v-card-text>
-
-        <v-card-actions class="pa-4">
-          <v-spacer></v-spacer>
-          <v-btn
-            variant="text"
-            @click="tenantNumberDialog = false; selectedTenantNumber = '1'"
-          >
-            Cancel
-          </v-btn>
-          <v-btn
-            color="primary"
-            variant="flat"
-            @click="tenantNumberDialog = false"
-          >
-            Confirm
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-
-    <!-- Enterprise Request Dialog -->
-    <v-dialog
-      v-model="enterpriseDialog"
-      max-width="600"
-      persistent
-    >
-      <v-card>
-        <v-card-title class="d-flex align-center justify-space-between">
-          <span class="text-h5">Enterprise Plan Request</span>
-          <v-btn
-            icon="mdi-close"
-            variant="text"
-            @click="enterpriseDialog = false"
+            @click="standardDialog = false"
           ></v-btn>
         </v-card-title>
 
         <v-card-text>
           <v-form>
             <v-text-field
-              v-model="enterpriseForm.companyName"
-              label="Company Name"
+              v-model="standardForm.ownerEmail"
+              label="Email"
+              type="email"
               variant="outlined"
               required
-              prepend-inner-icon="mdi-domain"
-              prefix="frontend."
-              suffix=".tripico.fun"
-              hint="Will be used as your subdomain (e.g., 'Triden' → frontend.triden.tripico.fun)"
+              prepend-inner-icon="mdi-email"
+              hint="Your email address for account access"
               persistent-hint
               class="mb-3"
             ></v-text-field>
 
             <v-text-field
-              v-model="enterpriseForm.email"
-              label="Contact Email"
-              type="email"
+              v-model="standardForm.ownerPassword"
+              label="Password"
+              type="password"
               variant="outlined"
               required
-              prepend-inner-icon="mdi-email"
+              prepend-inner-icon="mdi-lock"
+              hint="Choose a secure password"
+              persistent-hint
               class="mb-3"
             ></v-text-field>
           </v-form>
@@ -505,7 +468,94 @@ const mockEnterpriseRequest = async () => {
             class="mt-4"
           >
             <div class="text-caption">
-              Your dedicated instance will be provisioned on a custom subdomain with dedicated GKE resources.
+              After registration, you will receive an email once your deployment is ready.
+            </div>
+          </v-alert>
+        </v-card-text>
+
+        <v-card-actions class="pa-4">
+          <v-spacer></v-spacer>
+          <v-btn
+            variant="text"
+            @click="standardDialog = false"
+          >
+            Cancel
+          </v-btn>
+          <v-btn
+            color="primary"
+            variant="flat"
+            :loading="loading"
+            @click="submitStandardRequest"
+          >
+            Register
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Enterprise Plan Registration Dialog -->
+    <v-dialog
+      v-model="enterpriseDialog"
+      max-width="600"
+      persistent
+    >
+      <v-card>
+        <v-card-title class="d-flex align-center justify-space-between">
+          <span class="text-h5">Enterprise Plan Registration</span>
+          <v-btn
+            icon="mdi-close"
+            variant="text"
+            @click="enterpriseDialog = false"
+          ></v-btn>
+        </v-card-title>
+
+        <v-card-text>
+          <v-form>
+            <v-text-field
+              v-model="enterpriseForm.enterpriseName"
+              label="Enterprise Name (Subdomain)"
+              variant="outlined"
+              required
+              prepend-inner-icon="mdi-domain"
+              suffix=".tripico.fun"
+              hint="Your subdomain - only lowercase letters, numbers, and hyphens allowed"
+              persistent-hint
+              class="mb-3"
+            ></v-text-field>
+
+            <v-text-field
+              v-model="enterpriseForm.ownerEmail"
+              label="Email"
+              type="email"
+              variant="outlined"
+              required
+              prepend-inner-icon="mdi-email"
+              hint="Your email address for account access"
+              persistent-hint
+              class="mb-3"
+            ></v-text-field>
+
+            <v-text-field
+              v-model="enterpriseForm.ownerPassword"
+              label="Password"
+              type="password"
+              variant="outlined"
+              required
+              prepend-inner-icon="mdi-lock"
+              hint="Choose a secure password"
+              persistent-hint
+              class="mb-3"
+            ></v-text-field>
+          </v-form>
+
+          <v-alert
+            type="info"
+            variant="tonal"
+            density="compact"
+            class="mt-4"
+          >
+            <div class="text-caption">
+              After registration, you will receive an email once your dedicated enterprise deployment is ready.
             </div>
           </v-alert>
         </v-card-text>
@@ -524,7 +574,7 @@ const mockEnterpriseRequest = async () => {
             :loading="loading"
             @click="submitEnterpriseRequest"
           >
-            Subscribe Now
+            Register
           </v-btn>
         </v-card-actions>
       </v-card>
